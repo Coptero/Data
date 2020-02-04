@@ -3,7 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="15551d54-4ee5-4286-965a-95ff8d0a2d5c" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/TicketRelation.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/TicketRelation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/TicketDetailChanges.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/TicketDetailChanges.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/TicketDetailHelpdesk.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/TicketDetailHelpdesk.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/TicketDetailProblems.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/TicketDetailProblems.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model/TicketWorkInfo.py" beforeDir="false" afterPath="$PROJECT_DIR$/model/TicketWorkInfo.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,7 +45,7 @@
       <option name="presentableId" value="Default" />
       <updated>1579771982528</updated>
       <workItem from="1580807735176" duration="27000" />
-      <workItem from="1580807772968" duration="1791000" />
+      <workItem from="1580807772968" duration="3037000" />
     </task>
     <servers />
   </component>

@@ -6,7 +6,7 @@ from pyspark.sql.types import StringType, StructField, StructType
 def getWISchema(self, file):
     validationSchema = file.schema
     corrupt_file_schema = [StructField("_corrupt_record", StringType(), True)]
-    StructType(corrupt_file_schema + validationSchema.fields)
+    validationSchema = StructType(validationSchema.fields + corrupt_file_schema)
     return validationSchema
 
 
