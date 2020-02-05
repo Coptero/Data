@@ -14,7 +14,7 @@ class AlertDsl(logging):
         path = fileName.replace(':', r'\\:').replace("/", r"\\/")
         qResultDF = spark.sqlContext.read \
             .option("es.resource", "indexName") \
-            .set("es.query", r"?q=file:\'' + path + '\'' ") \
+            .option("es.query", r"?q=file:\'' + path + '\'' ") \
             .format("org.elasticsearch.spark.sql") \
             .load()
         # ¿Equivalente de qResultDF = spark.esDF("${indexName}", "?q=file:\"" + path + "\"").select("ticket_id") ?
