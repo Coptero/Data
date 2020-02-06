@@ -8,6 +8,6 @@ def scColumns(file, spark):
                  'resource', 'port_resource', 'ne_carr', 'nni_carr', 'gw_carr', 'gw_carr_id']
     for c, n in zip(file.columns, scColumns):
         file = file.withColumnRenamed(c, n)
-
+    return file
 #      if(r.getDecimal(6)!=null){r.getDecimal(6).toString}else{"none"}, //dev_id
 #      if(r.getDecimal(14)!=null){r.getDecimal(14).toString}else{"none"})) //gw_carr_id)

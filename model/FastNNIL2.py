@@ -7,4 +7,4 @@ def nnil2Columns(file, spark):
                  'port_resource', 'ne_carr', 'nni_carr', 'nni_carr_id', 'gw_carr', 'gw_carr_id']
     for c, n in zip(file.columns, FastNNIL2):
         file = file.withColumnRenamed(c, n)
-
+    return file

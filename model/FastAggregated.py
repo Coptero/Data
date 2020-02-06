@@ -6,3 +6,5 @@ def aggColumns(file, spark):
                        'nni_resource', 'aggr_resource']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
+
+    return file
