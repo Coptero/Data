@@ -9,3 +9,5 @@ def fastColumns(file, spark):
                    'fast_service_availability', 'fast_provision_time', 'fast_top_object_id']
     for c, n in zip(file.columns, FastByAdmin):
         file = file.withColumnRenamed(c, n)
+
+    return file

@@ -11,3 +11,5 @@ def principalColumns(file, spark):
                        'servsupp_standard_mtr', 'servsupp_name_txt', 'servsupp_name_acronym']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
+
+    return file
