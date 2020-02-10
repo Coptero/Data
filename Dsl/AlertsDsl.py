@@ -5,6 +5,7 @@ from datetime import datetime
 from pyspark import *
 from model.Alert import Alert
 from elasticsearch import Elasticsearch
+from Dsl.ElasticDsl import ElasticDsl
 
 
 class AlertDsl(logging):
@@ -26,4 +27,4 @@ class AlertDsl(logging):
             now = datetime.now()
             current_time = now.strftime("%Y%m%d%H%M%S")
             alertDataFrame = spark.createDataFrame([Alert(fileName, dfCount, queryCount, current_time)])
-            writeESAlertsIndex(alertDataFrame)
+            ElasticDsl.writeESAlertsIndex(alertDataFrame)
