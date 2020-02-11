@@ -6,7 +6,11 @@ from Dsl.S3FilesDsl import S3FilesDsl
 from Dsl.ValidationsDsl import ValidationsDsl
 from Dsl.ElasticDsl import ElasticDsl
 from Dsl.AlertsDsl import AlertDsl
+from pyspark.sql import *
 import logging
+
+from model.TicketDetailHelpdesk import getIncidSchema
+from utils.SparkJob import SparkJob
 
 
 class CopteroRODHelpdeskJob(SparkJob):
@@ -42,8 +46,10 @@ class CopteroRODHelpdeskJob(SparkJob):
             # ?? logStatus = logStatus.copy(success=true, count=dfCount)
             logging.info("End batch Coptero ROD ----------------------------------------------------")
         except Exception as e:
-            logStatus = logStatus.copy(success=Some(false), exception=Some(ex.getMessage))
+            logStatus = logStatus.copy(success=False, exception=e.getMessage)
             logging.error("catched: " + e.getMessage)
             raise e
-        #finally
-
+        finally:
+            logDataFrame = spark.createDataFrame(logStatus.copy(end_date=Some(new
+            SimpleDateFormat("yyyyMMddHHmmss").format(Calendar.getInstance.getTime))))
+            AlertDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")
