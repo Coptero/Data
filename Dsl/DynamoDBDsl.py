@@ -2,11 +2,12 @@ from pyspark.sql import *
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
+# Get the service resource.
+dynamodb = boto3.resource('dynamodb')
+client = boto3.client('dynamodb')
 
 class DynamoDBDsl:
-    # Get the service resource.
-    dynamodb = boto3.resource('dynamodb')
-    client = boto3.client('dynamodb')
+
 
     def getAuxTablePath(auxTableName):
         table = dynamodb.Table("coptero_state")

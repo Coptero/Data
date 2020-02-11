@@ -1,7 +1,9 @@
 from pyspark import *
 
+class TicketUrgency:
 
-def TicketUrgency(file, spark):
-    AdminNumberTags = ['urgency_id', 'urgency_desc']
-    for c, n in zip(file.columns, AdminNumberTags):
-        file = file.withColumnRenamed(c, n)
+    def urgencyColumns(file, spark):
+        AdminNumberTags = ['urgency_id', 'urgency_desc']
+        for c, n in zip(file.columns, AdminNumberTags):
+            file = file.withColumnRenamed(c, n)
+        return file
