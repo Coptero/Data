@@ -11,6 +11,7 @@ import logging
 
 from model.TicketDetailHelpdesk import getIncidSchema
 from utils.SparkJob import SparkJob
+from Dsl.RemedyDsl import RemedyDsl
 
 
 class CopteroRODHelpdeskJob(SparkJob):
@@ -28,7 +29,7 @@ class CopteroRODHelpdeskJob(SparkJob):
             rodTicketDetailHelpdesk = TicketDetailHelpdesk.detailHPDColumns(validatedRecords)
             logging.info("rodTicketDetailHelpdesk.count().." + rodTicketDetailHelpdesk.count())
             # val cisClosedDates = getCIsLastClosedDates(rodTicketDetailHelpdesk)
-            esIndex = buildESIndex("helpdesk", rodTicketDetailHelpdesk, s3confPath, s3filePath)
+            esIndex = RemedyDsl.buildESIndex("helpdesk", rodTicketDetailHelpdesk, s3confPath, s3filePath)
             # TODO ? esIndex.as[IncidESIndex]with Option[String] = None
             logging.info("Persisting ES index..")
             dfCount = esIndex.count.toInt
