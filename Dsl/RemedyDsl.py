@@ -18,6 +18,8 @@ import pyspark.sql.functions as F
 import pyspark.sql
 import Dsl.S3FilesDsl
 import Dsl.DynamoDBDsl
+from Dsl.S3FilesDsl import S3FilesDsl
+from model.OperatingTags import operatingTagsColumns
 
 
 class RemedyDsl(logging):
@@ -80,7 +82,7 @@ class RemedyDsl(logging):
 
         logging.info("common joins..")
 
-        #TODO: añadir import de utils.constantes
+        # TODO: añadir import de utils.constantes
         common = detail.toDF(). \
             transform(joinMasterEntities). \
             join(rodPostgreAdminNumber, F.sequence("admin_number"), "left"). \
@@ -88,53 +90,109 @@ class RemedyDsl(logging):
             join(networkFast, F.sequence("admin_number"), "left"). \
             withColumn("network", networkNestedObject("fast_customer", "fast_end_customer", "router_interface_vendor")). \
             drop("router_interface_vendor"). \
-            join(rodTicketANTags, F.sequence("admin_number"), "left").\
-            withColumn("open", F.when("status_desc".isin(Constants.openStatus),Constants.OPEN_YES).otherwise(F.when("status_desc".isin(Constants.notOpenStatus),Constants.OPEN_NO).otherwise(Constants.EMPTY_STRING))). \
+            join(rodTicketANTags, F.sequence("admin_number"), "left"). \
+            withColumn("open", F.when("status_desc".isin(Constants.openStatus), Constants.OPEN_YES).otherwise(
+            F.when("status_desc".isin(Constants.notOpenStatus), Constants.OPEN_NO).otherwise(Constants.EMPTY_STRING))). \
             withColumn("ticket_max_value_partition", getIndexPartition("ticket_id")). \
             withColumn("admin_number_escaped", urlWhitespaces("admin_number")). \
-            withColumn("fast_max_resolution_time", validateNumeric("fast_max_resolution_time")).withColumn("file", lit(
-            s3filePath))
+            withColumn("fast_max_resolution_time", validateNumeric("fast_max_resolution_time")). \
+            withColumn("file", lit(s3filePath))
+
+        if detailType == "helpdesk":
+            rodTicketReportedSource = getReportedSource
+            operationalManager = getOperationalManager(confJson.operational_path)
+            opTags = operatingTagsColumns(S3FilesDsl.readFile(confJson.tags_operating_path))
+            common \
+                .join(rodTicketReportedSource, Seq("reported_source_id"), "left") \
+                .drop("reported_source_id") \
+                .join(operationalManager, Seq("operating_company_name", "operating_le"), "left") \
+                .na.fill(Constants.EMPTY_STRING, Seq("operational_manager")) \
+                .join(opTags, Seq("operating_company_name", "operating_le"), "left").withColumn("tags",
+                                                                                                mergeArrays($"tags", $"operating_tags"))
+            .drop("operating_tags")
+            .withColumn("ci_country", kibanaCountry("ci_country"))
+            .withColumn("end_user_country", kibanaCountry("end_user_country"))
+            .withColumn("smc_cluster", smcClusterFromGroup("assigned_support_group"))
+            .withColumn("ci_name_escaped", urlWhitespaces("ci_name"))
+            .withColumn("product_categorization_all_tiers",
+                        concat3Columns("product_categorization_tier_1",
+                                       "product_categorization_tier_2", $"product_categorization_tier_3"))
+            .withColumn("closure_categorization_all_tiers",
+                        concat3Columns("closure_categorization_tier_1",
+                                       "closure_categorization_tier_2", $"closure_categorization_tier_3"))
+            .withColumn("operational_categorization_all_tiers",
+                        concat3Columns($"operational_categorization_tier_1", $"operational_categorization_tier_2", $"operational_categorization_tier_3"))
+            .withColumnRenamed("reported_source_desc", "reported_source_id")
+
+        elif detailType == "problems"
+            common.withColumn("ci_country", kibanaCountry("ci_country"))
+            .withColumn("ci_name_escaped", urlWhitespaces("ci_name"))
+
+        elif detailType == "changes"
+            rodTicketReportedSource = getReportedSource
+            common
+            .join(rodTicketReportedSource, Seq("reported_source_id"), "left")
+            .drop("reported_source_id")
+            .withColumn("ci_country", kibanaCountry("ci_country"))
+            .withColumn("company_country", kibanaCountry("company_country"))
+            .withColumnRenamed("reported_source_desc", "reported_source_id")
 
 
+# EL USUARIO SOLICITA QUE LAS DESCRIPCIONES DE LOS MAESTROS SE RENOMBREN COMO _id
+indexRenamed = index
+.withColumnRenamed("status_desc", "status_id")
+.withColumnRenamed("substatus_desc", "substatus_id")
+.withColumnRenamed("urgency_desc", "urgency_id")
+.withColumnRenamed("priority_desc", "priority_id")
+.withColumnRenamed("impact_desc", "impact_id")
 
-    def getReportedSource(spark):
-        fileReportedSource = Dsl.S3FilesDsl.S3FilesDsl.readFile(
-            Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_REPORTED_SOURCE"))
-        return model.TicketReportedSource.reportedSourceColumns(fileReportedSource)
+indexRenamed
 
-    def getOperationalManager(s3path, spark):
-        fileOperationalManager = Dsl.S3FilesDsl.S3FilesDsl.readFile(s3path)
-        return model.OperationalManager.OperationalManager.operationalManagerColumns(fileOperationalManager)
 
-    def joinMasterEntities(df, spark):
-        fileStatus = Dsl.S3FilesDsl.S3FilesDsl.readFile(Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_STATUS"))
-        fileSubstatus = Dsl.S3FilesDsl.S3FilesDsl.readFile(
-            Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_SUBSTATUS"))
-        fileUrgency = Dsl.S3FilesDsl.S3FilesDsl.readFile(Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_URGENCY"))
-        filePriority = Dsl.S3FilesDsl.S3FilesDsl.readFile(
-            Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_PRIORITY"))
-        fileImpact = Dsl.S3FilesDsl.S3FilesDsl.readFile(Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_IMPACT"))
-        rodTicketStatus = model.TicketStatus.TicketStatus.statusColumns(fileStatus)
-        rodTicketSubstatus = model.TicketSubstatus.TicketSubstatus.substatusColumns(fileSubstatus)
-        rodTicketUrgency = model.TicketUrgency.TicketUrgency.urgencyColumns(fileUrgency)
-        rodTicketPriority = model.TicketPriority.TicketPriority.priorityColumns(filePriority)
-        rodTicketImpact = model.TicketImpact.TicketImpact.impactColumns(fileImpact)
+def getReportedSource():
+    fileReportedSource = Dsl.S3FilesDsl.S3FilesDsl.readFile(
+        Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_REPORTED_SOURCE"))
+    return model.TicketReportedSource.reportedSourceColumns(fileReportedSource)
 
-        df.join(rodTicketStatus, F.sequence("status_id"), "left"). \
-            join(rodTicketSubstatus, F.sequence("substatus_id", "status_id"), "left"). \
-            drop("status_id"). \
-            drop("substatus_id"). \
-            join(rodTicketUrgency, F.sequence("urgency_id"), "left"). \
-            drop("urgency_id"). \
-            join(rodTicketPriority, F.sequence("priority_id"), "left"). \
-            drop("priority_id"). \
-            join(rodTicketImpact, F.sequence("impact_id"), "left"). \
-            drop("impact_id")
-        return df
 
-    def routerInterfaceVendor(df, spark):
-        df.select("vpnsite_admin_number".alias("admin_number"), "servsupp_name_txt".alias("vendor"),
-                  "router_interface"). \
-            filter("admin_number".isNotNull & "vendor".isNotNull). \
-            groupBy("admin_number").agg(
-            F.collect_list(F.struct("router_interface", "vendor")).alias("router_interface_vendor"))
+def getOperationalManager(s3path, spark):
+    fileOperationalManager = Dsl.S3FilesDsl.S3FilesDsl.readFile(s3path)
+    return model.OperationalManager.OperationalManager.operationalManagerColumns(fileOperationalManager)
+
+
+def joinMasterEntities(df, spark):
+    fileStatus = Dsl.S3FilesDsl.S3FilesDsl.readFile(
+        Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_STATUS"))
+    fileSubstatus = Dsl.S3FilesDsl.S3FilesDsl.readFile(
+        Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_SUBSTATUS"))
+    fileUrgency = Dsl.S3FilesDsl.S3FilesDsl.readFile(
+        Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_URGENCY"))
+    filePriority = Dsl.S3FilesDsl.S3FilesDsl.readFile(
+        Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_PRIORITY"))
+    fileImpact = Dsl.S3FilesDsl.S3FilesDsl.readFile(
+        Dsl.DynamoDBDsl.DynamoDBDsl.getAuxTablePath("TICKET_IMPACT"))
+    rodTicketStatus = model.TicketStatus.TicketStatus.statusColumns(fileStatus)
+    rodTicketSubstatus = model.TicketSubstatus.TicketSubstatus.substatusColumns(fileSubstatus)
+    rodTicketUrgency = model.TicketUrgency.TicketUrgency.urgencyColumns(fileUrgency)
+    rodTicketPriority = model.TicketPriority.TicketPriority.priorityColumns(filePriority)
+    rodTicketImpact = model.TicketImpact.TicketImpact.impactColumns(fileImpact)
+
+    df.join(rodTicketStatus, F.sequence("status_id"), "left"). \
+        join(rodTicketSubstatus, F.sequence("substatus_id", "status_id"), "left"). \
+        drop("status_id"). \
+        drop("substatus_id"). \
+        join(rodTicketUrgency, F.sequence("urgency_id"), "left"). \
+        drop("urgency_id"). \
+        join(rodTicketPriority, F.sequence("priority_id"), "left"). \
+        drop("priority_id"). \
+        join(rodTicketImpact, F.sequence("impact_id"), "left"). \
+        drop("impact_id")
+    return df
+
+
+def routerInterfaceVendor(df, spark):
+    df.select("vpnsite_admin_number".alias("admin_number"), "servsupp_name_txt".alias("vendor"),
+              "router_interface"). \
+        filter("admin_number".isNotNull & "vendor".isNotNull). \
+        groupBy("admin_number").agg(
+        F.collect_list(F.struct("router_interface", "vendor")).alias("router_interface_vendor"))
