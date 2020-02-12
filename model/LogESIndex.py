@@ -15,4 +15,4 @@ class LogESIndex(object):
 
     def startLogStatus(self, file):
         self.file = file
-        self.start_date = datetime.today().strftime('%Y%m%d%H%M%S')
+        self.start_date = datetime.now().strftime("%Y%m%d%H%M%S")

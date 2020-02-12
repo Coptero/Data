@@ -8,7 +8,7 @@ from Dsl.ElasticDsl import ElasticDsl
 from Dsl.AlertsDsl import AlertDsl
 from pyspark.sql import *
 import logging
-
+from datetime import datetime
 from model.TicketDetailHelpdesk import getIncidSchema
 from utils.SparkJob import SparkJob
 from Dsl.RemedyDsl import RemedyDsl
@@ -27,7 +27,7 @@ class CopteroRODHelpdeskJob(SparkJob):
 
             logging.info("fileDetailHelpdesk.count().." + validatedRecords.count())
             rodTicketDetailHelpdesk = TicketDetailHelpdesk.detailHPDColumns(validatedRecords)
-            logging.info("rodTicketDetailHelpdesk.count().." + rodTicketDetailHelpdesk.count())
+            logging.info("rodTicketDetailHelpdesk.count.." + rodTicketDetailHelpdesk.count())
             # val cisClosedDates = getCIsLastClosedDates(rodTicketDetailHelpdesk)
             esIndex = RemedyDsl.buildESIndex("helpdesk", rodTicketDetailHelpdesk, s3confPath, s3filePath)
             # TODO ? esIndex.as[IncidESIndex]with Option[String] = None
@@ -40,17 +40,17 @@ class CopteroRODHelpdeskJob(SparkJob):
                 if e.getMessage.contains("index_closed_exception"):
                     raise e
                 else:
+                    # TODO saveToEs {partitioned} works fine but ends with exception ?¿
                     logging.info("catched index_closed_exception: " + e.getMessage)
 
             AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount)
 
-            # ?? logStatus = logStatus.copy(success=true, count=dfCount)
+            logStatus = logStatus.copy(success=True, count=dfCount)
             logging.info("End batch Coptero ROD ----------------------------------------------------")
         except Exception as e:
             logStatus = logStatus.copy(success=False, exception=e.getMessage)
             logging.error("catched: " + e.getMessage)
             raise e
         finally:
-            logDataFrame = spark.createDataFrame(logStatus.copy(end_date=Some(new
-            SimpleDateFormat("yyyyMMddHHmmss").format(Calendar.getInstance.getTime))))
+            logDataFrame = spark.createDataFrame(logStatus.copy(end_date=datetime.now().strftime("%Y%m%d%H%M%S")))
             AlertDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")

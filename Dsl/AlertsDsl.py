@@ -24,7 +24,5 @@ class AlertDsl(logging):
         qResultDF.unpersist
         logging.info("queryCount.. " + queryCount)
         if dfCount != queryCount:
-            now = datetime.now()
-            current_time = now.strftime("%Y%m%d%H%M%S")
-            alertDataFrame = spark.createDataFrame([Alert(fileName, dfCount, queryCount, current_time)])
+            alertDataFrame = spark.createDataFrame([Alert(fileName, dfCount, queryCount, datetime.now().strftime("%Y%m%d%H%M%S"))])
             ElasticDsl.writeESAlertsIndex(alertDataFrame)
