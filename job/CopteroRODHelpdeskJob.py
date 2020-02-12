@@ -12,6 +12,7 @@ from datetime import datetime
 from model.TicketDetailHelpdesk import getIncidSchema
 from utils.SparkJob import SparkJob
 from Dsl.RemedyDsl import RemedyDsl
+import copy
 
 
 class CopteroRODHelpdeskJob(SparkJob):
@@ -45,12 +46,17 @@ class CopteroRODHelpdeskJob(SparkJob):
 
             AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount)
 
-            logStatus = logStatus.copy(success=True, count=dfCount)
+            logStatus = copy.deepcopy(logStatus)
+            logStatus.success = True
+            logStatus.count = dfCount
             logging.info("End batch Coptero ROD ----------------------------------------------------")
         except Exception as e:
-            logStatus = logStatus.copy(success=False, exception=e.getMessage)
+            logStatus = copy.deepcopy(logStatus)
+            logStatus.success = False
+            logStatus.exception = e.getMessage
             logging.error("catched: " + e.getMessage)
             raise e
         finally:
-            logDataFrame = spark.createDataFrame(logStatus.copy(end_date=datetime.now().strftime("%Y%m%d%H%M%S")))
+            logDataFrame = spark.createDataFrame(copy.deepcopy(logStatus))
+            logDataFrame.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
             AlertDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")
