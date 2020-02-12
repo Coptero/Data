@@ -82,7 +82,7 @@ class RemedyDsl(logging):
 
         #TODO: añadir import de utils.constantes
         common = detail.toDF(). \
-            transform(joinMasterEntities(df)). \
+            transform(joinMasterEntities). \
             join(rodPostgreAdminNumber, F.sequence("admin_number"), "left"). \
             transform(fillEmptyFastColumns). \
             join(networkFast, F.sequence("admin_number"), "left"). \
