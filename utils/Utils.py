@@ -7,24 +7,35 @@ from config.CopteroConfig import  CopteroConfig
 
 class Utils:
 
-    def getDatesWhereClause(startDate: datetime, endDate: datetime):
+    def getDatesWhereClause(startDate, endDate):
         delta = timedelta(days=1)
         starBracket = "("
         endBracket = ")"
         dayIt = starBracket + ""
         while startDate <= endDate:
             dayIt = dayIt + starBracket + startDate.strftime("year = %Y and month = %m and day = %d") + endBracket
-            dayIt = dayIt + "or"
+            dayIt = dayIt + " or "
             print(dayIt)
             startDate += delta
 
         dayIt = dayIt + endBracket
         return dayIt
 
-    def getLocalDateFromString(strDate: str):
+    def getLocalDateFromString(strDate):
         return datetime.strptime(strDate,"%Y%m%d")
 
-    def fillEmptyFastColumns(df: DataFrame):
+    def addPartitionsFields(clients, conf):
+        clients.\
+            withColumn("year", F.lit(conf.inputDate.year)).\
+            withColumn("month", F.lit(conf.inputDate.month)).\
+            withColumn("day", F.lit(conf.inputDate.day))
+        return clients
+
+    def dropColumnsDuplicatesByJoin(clients, conf):
+        clients.drop("id1", "id2")
+        return clients
+
+    def fillEmptyFastColumns(df):
         df.na.fill(Constants.EMPTY_STRING, F.sequence(
         "fast_customer",
         "fast_end_customer",
@@ -42,6 +53,21 @@ class Utils:
         "fast_service_availability",
         "fast_provision_time"))
         return df
+
+    def validateNum(field):
+        try:
+            if(field.trim.toLong):
+                return field
+
+
+    validateNumeric = F.udf((field) = > {
+    if (Try(field.trim.toLong).isSuccess)
+    {
+        field
+    } else {
+        Constants.EMPTY_STRING
+    }
+    })
 
 
 class Constants:
