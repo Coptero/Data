@@ -20,7 +20,8 @@ import Dsl.S3FilesDsl
 import Dsl.DynamoDBDsl
 from Dsl.S3FilesDsl import S3FilesDsl
 from model.OperatingTags import operatingTagsColumns
-from utils.Utils import Constants
+import utils.Utils
+from utils.Utils import Constants, Utils
 
 
 class RemedyDsl(logging):
@@ -84,59 +85,60 @@ class RemedyDsl(logging):
         logging.info("common joins..")
 
         # TODO: añadir import de utils.constantes
+        # TODO: comprobar parametros que se pasan a los metodos de Utils
         common = detail.toDF(). \
             transform(joinMasterEntities). \
             join(rodPostgreAdminNumber, F.sequence("admin_number"), "left"). \
-            transform(fillEmptyFastColumns). \
+            transform(Utils.fillEmptyFastColumns). \
             join(networkFast, F.sequence("admin_number"), "left"). \
-            withColumn("network", networkNestedObject("fast_customer", "fast_end_customer", "router_interface_vendor")). \
+            withColumn("network", Utils.networkNestedObject("fast_customer", "fast_end_customer", "router_interface_vendor")). \
             drop("router_interface_vendor"). \
             join(rodTicketANTags, F.sequence("admin_number"), "left"). \
             withColumn("open", F.when("status_desc".isin(Constants.openStatus), Constants.OPEN_YES).otherwise(
             F.when("status_desc".isin(Constants.notOpenStatus), Constants.OPEN_NO).otherwise(Constants.EMPTY_STRING))). \
-            withColumn("ticket_max_value_partition", getIndexPartition("ticket_id")). \
-            withColumn("admin_number_escaped", urlWhitespaces("admin_number")). \
-            withColumn("fast_max_resolution_time", validateNumeric("fast_max_resolution_time")). \
-            withColumn("file", lit(s3filePath))
+            withColumn("ticket_max_value_partition",Utils.getIndexPartition("ticket_id")). \
+            withColumn("admin_number_escaped",Utils.urlWhitespaces("admin_number")). \
+            withColumn("fast_max_resolution_time", Utils.validateNumeric("fast_max_resolution_time")). \
+            withColumn("file", F.lit(s3filePath))
 
         if detailType == "helpdesk":
             rodTicketReportedSource = getReportedSource
             operationalManager = getOperationalManager(confJson.operational_path)
             opTags = operatingTagsColumns(S3FilesDsl.readFile(confJson.tags_operating_path))
             index = common \
-                .join(rodTicketReportedSource, Seq("reported_source_id"), "left") \
+                .join(rodTicketReportedSource, F.sequence("reported_source_id"), "left") \
                 .drop("reported_source_id") \
-                .join(operationalManager, Seq("operating_company_name", "operating_le"), "left") \
-                .na.fill(Constants.EMPTY_STRING, Seq("operational_manager")) \
-                .join(opTags, Seq("operating_company_name", "operating_le"), "left") \
-                .withColumn("tags", mergeArrays("tags", "operating_tags")) \
+                .join(operationalManager, F.sequence("operating_company_name", "operating_le"), "left") \
+                .na.fill(Constants.EMPTY_STRING, F.sequence("operational_manager")) \
+                .join(opTags, F.sequence("operating_company_name", "operating_le"), "left") \
+                .withColumn("tags",Utils.mergeArrays("tags", "operating_tags")) \
                 .drop("operating_tags") \
-                .withColumn("ci_country", kibanaCountry("ci_country")) \
-                .withColumn("end_user_country", kibanaCountry("end_user_country")) \
-                .withColumn("smc_cluster", smcClusterFromGroup("assigned_support_group")) \
-                .withColumn("ci_name_escaped", urlWhitespaces("ci_name")) \
+                .withColumn("ci_country", Utils.kibanaCountry("ci_country")) \
+                .withColumn("end_user_country", Utils.kibanaCountry("end_user_country")) \
+                .withColumn("smc_cluster", Utils.smcClusterFromGroup("assigned_support_group")) \
+                .withColumn("ci_name_escaped", Utils.urlWhitespaces("ci_name")) \
                 .withColumn("product_categorization_all_tiers",
-                            concat3Columns("product_categorization_tier_1", "product_categorization_tier_2",
+                            Utils.concat3Columns("product_categorization_tier_1", "product_categorization_tier_2",
                                            "product_categorization_tier_3")) \
                 .withColumn("closure_categorization_all_tiers",
-                            concat3Columns("closure_categorization_tier_1", "closure_categorization_tier_2",
+                            Utils.concat3Columns("closure_categorization_tier_1", "closure_categorization_tier_2",
                                            "closure_categorization_tier_3")) \
                 .withColumn("operational_categorization_all_tiers",
-                            concat3Columns("operational_categorization_tier_1", "operational_categorization_tier_2",
+                            Utils.concat3Columns("operational_categorization_tier_1", "operational_categorization_tier_2",
                                            "operational_categorization_tier_3")) \
                 .withColumnRenamed("reported_source_desc", "reported_source_id")
 
         elif detailType == "problems":
-            index = common.withColumn("ci_country", kibanaCountry("ci_country")) \
-                .withColumn("ci_name_escaped", urlWhitespaces("ci_name"))
+            index = common.withColumn("ci_country", Utils.kibanaCountry("ci_country")) \
+                .withColumn("ci_name_escaped", Utils.urlWhitespaces("ci_name"))
 
         elif detailType == "changes":
             rodTicketReportedSource = getReportedSource
             index = common \
-                .join(rodTicketReportedSource, Seq("reported_source_id"), "left") \
+                .join(rodTicketReportedSource, F.sequence("reported_source_id"), "left") \
                 .drop("reported_source_id") \
-                .withColumn("ci_country", kibanaCountry("ci_country")) \
-                .withColumn("company_country", kibanaCountry("company_country")) \
+                .withColumn("ci_country", Utils.kibanaCountry("ci_country")) \
+                .withColumn("company_country", Utils.kibanaCountry("company_country")) \
                 .withColumnRenamed("reported_source_desc", "reported_source_id")
 
 
