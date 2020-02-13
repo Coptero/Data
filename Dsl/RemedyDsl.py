@@ -106,11 +106,11 @@ class RemedyDsl(logging):
             operationalManager = getOperationalManager(confJson.operational_path)
             opTags = operatingTagsColumns(S3FilesDsl.readFile(confJson.tags_operating_path))
             index = common \
-                .join(rodTicketReportedSource, F.sequence("reported_source_id"), "left") \
+                .join(rodTicketReportedSource, [("reported_source_id")], "left") \
                 .drop("reported_source_id") \
-                .join(operationalManager, F.sequence("operating_company_name", "operating_le"), "left") \
-                .na.fill(Constants.EMPTY_STRING, F.sequence("operational_manager")) \
-                .join(opTags, F.sequence("operating_company_name", "operating_le"), "left") \
+                .join(operationalManager, [("operating_company_name", "operating_le")], "left") \
+                .na.fill(Constants.EMPTY_STRING, [("operational_manager")]) \
+                .join(opTags, [("operating_company_name", "operating_le")], "left") \
                 .withColumn("tags",Utils.mergeArrays("tags", "operating_tags")) \
                 .drop("operating_tags") \
                 .withColumn("ci_country", Utils.kibanaCountry("ci_country")) \
@@ -135,7 +135,7 @@ class RemedyDsl(logging):
         elif detailType == "changes":
             rodTicketReportedSource = getReportedSource
             index = common \
-                .join(rodTicketReportedSource, F.sequence("reported_source_id"), "left") \
+                .join(rodTicketReportedSource, [("reported_source_id")], "left") \
                 .drop("reported_source_id") \
                 .withColumn("ci_country", Utils.kibanaCountry("ci_country")) \
                 .withColumn("company_country", Utils.kibanaCountry("company_country")) \
@@ -181,15 +181,15 @@ def joinMasterEntities(df, spark):
     rodTicketPriority = model.TicketPriority.TicketPriority.priorityColumns(filePriority)
     rodTicketImpact = model.TicketImpact.TicketImpact.impactColumns(fileImpact)
 
-    df.join(rodTicketStatus, F.sequence("status_id"), "left"). \
-        join(rodTicketSubstatus, F.sequence("substatus_id", "status_id"), "left"). \
+    df.join(rodTicketStatus, [("status_id")], "left"). \
+        join(rodTicketSubstatus, [("substatus_id", "status_id")], "left"). \
         drop("status_id"). \
         drop("substatus_id"). \
-        join(rodTicketUrgency, F.sequence("urgency_id"), "left"). \
+        join(rodTicketUrgency, [("urgency_id")], "left"). \
         drop("urgency_id"). \
-        join(rodTicketPriority, F.sequence("priority_id"), "left"). \
+        join(rodTicketPriority, [("priority_id")], "left"). \
         drop("priority_id"). \
-        join(rodTicketImpact, F.sequence("impact_id"), "left"). \
+        join(rodTicketImpact, [("impact_id")], "left"). \
         drop("impact_id")
     return df
 

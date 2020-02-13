@@ -38,7 +38,7 @@ class Utils:
         return clients
 
     def fillEmptyFastColumns(df):
-        df.na.fill(Constants.EMPTY_STRING, F.sequence(
+        df.na.fill(Constants.EMPTY_STRING, [
             "fast_customer",
             "fast_end_customer",
             "fast_country",
@@ -53,7 +53,7 @@ class Utils:
             "fast_access_diversity",
             "fast_max_resolution_time",
             "fast_service_availability",
-            "fast_provision_time"))
+            "fast_provision_time"])
         return df
 
     def validateNum(field):
