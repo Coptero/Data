@@ -20,6 +20,7 @@ import Dsl.S3FilesDsl
 import Dsl.DynamoDBDsl
 from Dsl.S3FilesDsl import S3FilesDsl
 from model.OperatingTags import operatingTagsColumns
+from utils.Utils import Constants
 
 
 class RemedyDsl(logging):
@@ -102,51 +103,52 @@ class RemedyDsl(logging):
             rodTicketReportedSource = getReportedSource
             operationalManager = getOperationalManager(confJson.operational_path)
             opTags = operatingTagsColumns(S3FilesDsl.readFile(confJson.tags_operating_path))
-            common \
+            index = common \
                 .join(rodTicketReportedSource, Seq("reported_source_id"), "left") \
                 .drop("reported_source_id") \
                 .join(operationalManager, Seq("operating_company_name", "operating_le"), "left") \
                 .na.fill(Constants.EMPTY_STRING, Seq("operational_manager")) \
-                .join(opTags, Seq("operating_company_name", "operating_le"), "left").withColumn("tags",
-                                                                                                mergeArrays($"tags", $"operating_tags"))
-            .drop("operating_tags")
-            .withColumn("ci_country", kibanaCountry("ci_country"))
-            .withColumn("end_user_country", kibanaCountry("end_user_country"))
-            .withColumn("smc_cluster", smcClusterFromGroup("assigned_support_group"))
-            .withColumn("ci_name_escaped", urlWhitespaces("ci_name"))
-            .withColumn("product_categorization_all_tiers",
-                        concat3Columns("product_categorization_tier_1",
-                                       "product_categorization_tier_2", $"product_categorization_tier_3"))
-            .withColumn("closure_categorization_all_tiers",
-                        concat3Columns("closure_categorization_tier_1",
-                                       "closure_categorization_tier_2", $"closure_categorization_tier_3"))
-            .withColumn("operational_categorization_all_tiers",
-                        concat3Columns($"operational_categorization_tier_1", $"operational_categorization_tier_2", $"operational_categorization_tier_3"))
-            .withColumnRenamed("reported_source_desc", "reported_source_id")
+                .join(opTags, Seq("operating_company_name", "operating_le"), "left") \
+                .withColumn("tags", mergeArrays("tags", "operating_tags")) \
+                .drop("operating_tags") \
+                .withColumn("ci_country", kibanaCountry("ci_country")) \
+                .withColumn("end_user_country", kibanaCountry("end_user_country")) \
+                .withColumn("smc_cluster", smcClusterFromGroup("assigned_support_group")) \
+                .withColumn("ci_name_escaped", urlWhitespaces("ci_name")) \
+                .withColumn("product_categorization_all_tiers",
+                            concat3Columns("product_categorization_tier_1", "product_categorization_tier_2",
+                                           "product_categorization_tier_3")) \
+                .withColumn("closure_categorization_all_tiers",
+                            concat3Columns("closure_categorization_tier_1", "closure_categorization_tier_2",
+                                           "closure_categorization_tier_3")) \
+                .withColumn("operational_categorization_all_tiers",
+                            concat3Columns("operational_categorization_tier_1", "operational_categorization_tier_2",
+                                           "operational_categorization_tier_3")) \
+                .withColumnRenamed("reported_source_desc", "reported_source_id")
 
-        elif detailType == "problems"
-            common.withColumn("ci_country", kibanaCountry("ci_country"))
-            .withColumn("ci_name_escaped", urlWhitespaces("ci_name"))
+        elif detailType == "problems":
+            index = common.withColumn("ci_country", kibanaCountry("ci_country")) \
+                .withColumn("ci_name_escaped", urlWhitespaces("ci_name"))
 
-        elif detailType == "changes"
+        elif detailType == "changes":
             rodTicketReportedSource = getReportedSource
-            common
-            .join(rodTicketReportedSource, Seq("reported_source_id"), "left")
-            .drop("reported_source_id")
-            .withColumn("ci_country", kibanaCountry("ci_country"))
-            .withColumn("company_country", kibanaCountry("company_country"))
-            .withColumnRenamed("reported_source_desc", "reported_source_id")
+            index = common \
+                .join(rodTicketReportedSource, Seq("reported_source_id"), "left") \
+                .drop("reported_source_id") \
+                .withColumn("ci_country", kibanaCountry("ci_country")) \
+                .withColumn("company_country", kibanaCountry("company_country")) \
+                .withColumnRenamed("reported_source_desc", "reported_source_id")
 
 
-# EL USUARIO SOLICITA QUE LAS DESCRIPCIONES DE LOS MAESTROS SE RENOMBREN COMO _id
-indexRenamed = index
-.withColumnRenamed("status_desc", "status_id")
-.withColumnRenamed("substatus_desc", "substatus_id")
-.withColumnRenamed("urgency_desc", "urgency_id")
-.withColumnRenamed("priority_desc", "priority_id")
-.withColumnRenamed("impact_desc", "impact_id")
+        # EL USUARIO SOLICITA QUE LAS DESCRIPCIONES DE LOS MAESTROS SE RENOMBREN COMO _id
+        indexRenamed = index \
+            .withColumnRenamed("status_desc", "status_id") \
+            .withColumnRenamed("substatus_desc", "substatus_id") \
+            .withColumnRenamed("urgency_desc", "urgency_id") \
+            .withColumnRenamed("priority_desc", "priority_id") \
+            .withColumnRenamed("impact_desc", "impact_id")
 
-indexRenamed
+        return indexRenamed
 
 
 def getReportedSource():
