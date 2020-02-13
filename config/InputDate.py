@@ -12,5 +12,5 @@ class InputDate(object):
         return  datetime.strptime(self.getStringInputDate, "%Y%m%d")
 
     def getStartDate(self, daysMinus):
-        delta = datetime(daysMinus)
+        delta = timedelta(days=daysMinus)
         return self.getLocalInputDate() - delta

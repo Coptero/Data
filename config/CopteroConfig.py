@@ -12,7 +12,7 @@ class CopteroConfig(JSONEncoder):
         return Table(database, table)
 
     rootConfig = ConfigParser().read("coptero.conf")
-    sampleEntity: Table = configToTable(rootConfig.__getattribute__("sample.entity"))
+    sampleEntity = configToTable(rootConfig.__getattribute__("sample.entity"))
     first: int = rootConfig.getint("parameters.first")
 
     inputDate: InputDate = InputDate(rootConfig.__getattribute__("year"), rootConfig.__getattribute__("month"),

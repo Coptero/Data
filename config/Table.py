@@ -6,5 +6,5 @@ class Table(object):
     database: str
     table: str
 
-    def getTableName(database, table):
-        return database +"."+ table
+    def getTableName(self):
+        return self.database +"."+ self.table
