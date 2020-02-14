@@ -1,5 +1,7 @@
 # Default ignored files
+venv/pyvenv.cfg
 .idea/
 .idea
 .idea/*
-venv/pyvenv.cfg
+.venv/pyvenv.cfg
+/venv/pyvenv.cfg
