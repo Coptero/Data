@@ -5,13 +5,12 @@ from config import ConfigJson
 
 class S3FilesDsl:
     def readConfigJson(s3confPath):
-        s3Client = boto3.client('s3')
+        s3Client = boto3.client('s3',region_name='eu-central-1')
         bucketName = s3confPath.replace("s3://", "", 1).split("/", 0)
         path = s3confPath.replace("s3://" + bucketName + "/", "", 1)
-        s3InputStream = s3Client.object.get()["Body"].read()
-        jsonString = str(s3InputStream)
-        fields = json.loads(jsonString)
-        # ? fields = jsv.asJsObject.fields
+        serializedObject = s3Client.object['Body'].read()
+        fields = json.loads(serializedObject)
+
 
         ConfigJson.ConfigJson(
             str(fields["operational_path"]),
