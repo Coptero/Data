@@ -1,6 +1,6 @@
 # Default ignored files
 #ignore python configuration
-venv/pyvenv.cfg
+venv/
 .idea/
 .idea
 .idea/*
