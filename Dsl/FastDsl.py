@@ -1,16 +1,13 @@
-from pyspark.sql import *
-import tbs.bigdata.dsl.S3FilesDsl.readFile
-import model.FastAggregated
-import model.FastByAdmin
-import model.FastNNIL2
-import model.FastPrincipal
-import model.FastServiceCircuit
-
+from model.FastNNIL2 import nnil2Columns
+from model.FastByAdmin import fastColumns
+from model.FastPrincipal import principalColumns
+from model.FastServiceCircuit import scColumns
+from Dsl.S3FilesDsl import readFile
 
 class FastDsl:
 
     def postgreSQLAdminNumber(url, query, user, password, spark):
-        jdbcDF = postgreSQL(url, query, user, password, spark)
+        jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
         return fastColumns(jdbcDF)
 
     def postgreSQLMain(url, query, user, password, spark):
@@ -18,11 +15,11 @@ class FastDsl:
         return principalColumns(jdbcDF)
 
     def postgreSQLServiceCircuit(url, query, user, password, spark):
-        jdbcDF = postgreSQL(url, query, user, password, spark)
+        jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
         return scColumns(jdbcDF)
 
     def postgreSQLAggregated(url, query, user, password, spark):
-        jdbcDF = postgreSQL(url, query, user, password, spark)
+        jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
         return nnil2Columns(jdbcDF)
 
     def postgreSQL(url, query, user, password, spark):
