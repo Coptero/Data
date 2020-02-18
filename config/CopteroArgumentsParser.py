@@ -1,18 +1,24 @@
+'''
+import argparse
+import sys
 
-class CopteroArguments:
+class CopteroArgumentsParser:
     s3confPath = ""
     s3filePath = ""
 
-class CopteroArgumentsLite:
-    s3confPath = ""
 
-class CopteroArgumentsParserLite(scopt.OptionParser[CopteroArgumentsLite]("Coptero")):
-    head("Coptero", "1.0.0")
-    help("help").text("Print this usage text")
-    version("version").text("Show version")
+def parse(argv):
 
-    opt[String]("conf")\
-        .required()\
-        .valueName("<conf>")
-        .action((x, c) = > c.copy(s3confPath=x)).text("s3 conf file path")
+    # Construct the argument parser
+    ap = argparse.ArgumentParser()
 
+    # Add the arguments to the parser
+    ap.add_argument("-c", "--conf", required=True,
+                    help="s3 conf file path")
+    ap.add_argument("-f", "--file", required=True,
+                    help="s3 ingest file path")
+    args = vars(ap.parse_args())
+
+    s3confPath = str(args['conf'])
+    s3filePath = str(args['file'])
+'''

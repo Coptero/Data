@@ -1,8 +1,8 @@
-from pyspark.sql import *
+'''from pyspark.sql import *
 
 
 class IODsl:
-    '''
+
       /**
         * Read table from Hive
         *
@@ -10,7 +10,6 @@ class IODsl:
         * @param spark SparkSession
         * @return Dataset of ..
         */
-    '''
 
     def readTableHive(table, spark):
         return spark.sqlContext.read.table(table.getTableName)
@@ -26,3 +25,5 @@ class IOCopteroInsert:
 
 def toCopteroInsert(clients):
     IOCopteroInsert(clients)
+
+'''
