@@ -24,7 +24,7 @@ import utils.Utils
 from utils.Utils import Constants, Utils
 
 
-class RemedyDsl(logging):
+class RemedyDsl():
 
     def buildESIndex(detailType, detail, s3confPath, s3filePath, spark):
         # TODO.confinsteadof.json        val

@@ -1,7 +1,7 @@
 import boto3
 import json
 from config import ConfigJson
-
+from pyspark.sql import *
 
 class S3FilesDsl:
     def readConfigJson(s3confPath):
@@ -37,7 +37,8 @@ class S3FilesDsl:
         )
 
     def readFileSchema(file, schema, spark):
-        s3File = spark.sqlContext.read \
+        sqlContext = SQLContext(spark)
+        s3File = sqlContext.read \
             .option("delimiter", "|") \
             .option("quote", "") \
             .option("ignoreLeadingWhiteSpace", "true") \

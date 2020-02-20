@@ -3,8 +3,69 @@ from pyspark.sql import *  # DataFrame, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
 
-def getIncidSchema(self, file):
-    validationSchema = file.schema
+def getIncidSchema(file):
+    print("TICKET HELP DESK")
+    print(file)
+    validationSchema = StructType([
+        StructField("ticket_id", StringType(), True),
+        StructField("portal_ticket_id", StringType(), True),
+        StructField("sigma_ticket_id", StringType(), True),
+        StructField("service_type", StringType(), True),
+        StructField("submitter", StringType(), True),
+        StructField("submit_date", StringType(), True),
+        StructField("last_modification_date", StringType(), True),
+        StructField("status_id", StringType(), True),
+        StructField("substatus_id", StringType(), True),
+        StructField("assigned_support_company", StringType(), True),
+        StructField("assigned_support_organization", StringType(), True),
+        StructField("assigned_support_group", StringType(), True),
+        StructField("reported_date", StringType(), True),
+        StructField("reported_source_id", StringType(), True),
+        StructField("impact_id", StringType(), True),
+        StructField("urgency_id", StringType(), True),
+        StructField("priority_id", StringType(), True),
+        StructField("operating_company_name", StringType(), True),
+        StructField("operating_le", StringType(), True),
+        StructField("operating_bu", StringType(), True),
+        StructField("contact_company_name", StringType(), True),
+        StructField("contact_le", StringType(), True),
+        StructField("contact_bu", StringType(), True),
+        StructField("summary", StringType(), True),
+        StructField("notes", StringType(), True),
+        StructField("end_user_country", StringType(), True),
+        StructField("end_user_site", StringType(), True),
+        StructField("end_user_address", StringType(), True),
+        StructField("end_user_city", StringType(), True),
+        StructField("resolution_text", StringType(), True),
+        StructField("required_resolution_date", StringType(), True),
+        StructField("assigned_agent", StringType(), True),
+        StructField("massive_flag", StringType(), True),
+        StructField("ticket_father_id", StringType(), True),
+        StructField("last_resolved_date", StringType(), True),
+        StructField("closed_date", StringType(), True),
+        StructField("rfs_date", StringType(), True),
+        StructField("product_categorization_tier_1", StringType(), True),
+        StructField("product_categorization_tier_2", StringType(), True),
+        StructField("product_categorization_tier_3", StringType(), True),
+        StructField("operational_categorization_tier_1", StringType(), True),
+        StructField("operational_categorization_tier_2", StringType(), True),
+        StructField("operational_categorization_tier_3", StringType(), True),
+        StructField("closure_categorization_tier_1", StringType(), True),
+        StructField("closure_categorization_tier_2", StringType(), True),
+        StructField("closure_categorization_tier_3", StringType(), True),
+        StructField("vendor_group", StringType(), True),
+        StructField("bmc_ticket_pending_date", StringType(), True),
+        StructField("inf2_hpd_outage_duration", StringType(), True),
+        StructField("reason_outage", StringType(), True),
+        StructField("rfo_available", StringType(), True),
+        StructField("ci_name", StringType(), True),
+        StructField("ci_country", StringType(), True),
+        StructField("ci_city", StringType(), True),
+        StructField("ci_id_fast", StringType(), True),
+        StructField("admin_number", StringType(), True),
+        StructField("instanceid", StringType(), True)
+    ])
+    #validationSchema = file.schema
     corrupt_file_schema = [StructField("_corrupt_record", StringType(), True)]
     validationSchema = StructType(validationSchema.fields + corrupt_file_schema)
     return validationSchema

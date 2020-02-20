@@ -1,4 +1,7 @@
 # Faltan imports
+import sys
+folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
+sys.path.append(folderPath)
 import logging
 from pyspark.sql import *
 from datetime import datetime
@@ -8,7 +11,7 @@ from elasticsearch import Elasticsearch
 from Dsl.ElasticDsl import ElasticDsl
 
 
-class AlertDsl(logging):
+class AlertDsl():
     # Falta el implicit spark SparkSession
     def checkCount(indexName, fileName, dfCount, spark):
         logging.info('dfCount.. ' + dfCount)

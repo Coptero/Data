@@ -1,5 +1,7 @@
-from pyspark.sql import SparkSession
+import sys
 
+folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
+sys.path.append(folderPath)
 from model import TicketDetailHelpdesk
 from model.LogESIndex import LogESIndex
 from Dsl.S3FilesDsl import S3FilesDsl
@@ -7,6 +9,8 @@ from Dsl.ValidationsDsl import ValidationsDsl
 from Dsl.ElasticDsl import ElasticDsl
 from Dsl.AlertsDsl import AlertDsl
 from pyspark.sql import *
+# from pyspark.sql import SparkSession
+# from pyspark import SparkContext
 import logging
 from datetime import datetime
 from model.TicketDetailHelpdesk import getIncidSchema
@@ -17,6 +21,8 @@ import copy
 
 class CopteroRODHelpdeskJob(SparkJob):
     def runJob(sparkSession, s3confPath, s3filePath):
+        print("DENTRO DEL RUNJOB")
+        print(s3filePath)
         spark = sparkSession
         logStatus = LogESIndex.startLogStatus(s3filePath)
         dfCount = 0
@@ -24,7 +30,9 @@ class CopteroRODHelpdeskJob(SparkJob):
             logging.info(
                 "Start batch Coptero ROD for s3confPath:" + s3confPath + "--------------------------------------")
             validatedRecords = ValidationsDsl.validateTickets(s3filePath,
-                                                              S3FilesDsl.readFileSchema(s3filePath, getIncidSchema))
+                                                              S3FilesDsl.readFileSchema(s3filePath,
+                                                                                        getIncidSchema(s3filePath),
+                                                                                        spark), spark)
 
             logging.info("fileDetailHelpdesk.count().." + validatedRecords.count())
             rodTicketDetailHelpdesk = TicketDetailHelpdesk.detailHPDColumns(validatedRecords)
@@ -57,6 +65,7 @@ class CopteroRODHelpdeskJob(SparkJob):
             logging.error("catched: " + e.getMessage)
             raise e
         finally:
-            logDataFrame = spark.createDataFrame(copy.deepcopy(logStatus))
+            sqlContext = SQLContext(spark)
+            logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus))
             logDataFrame.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
             AlertDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")

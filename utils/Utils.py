@@ -1,9 +1,13 @@
+import sys
+
+folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
+sys.path.append(folderPath)
 from pyspark import *
 import pyspark.sql.functions as F
 from datetime import date, datetime, timedelta
 from pyspark.sql import DataFrame, Row
 from pyspark.sql.types import StringType
-from config.CopteroConfig import CopteroConfig
+# from config.CopteroConfig import CopteroConfig
 from model.Network import Network
 
 

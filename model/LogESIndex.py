@@ -6,13 +6,13 @@ from datetime import datetime
 @dataclass
 class LogESIndex(object):
     def __init__(self):
-        self.file: str = None
-        self.count: int = None
-        self.success: bool = None
-        self.exception: str = None,
-        self.start_date: str = None,
-        self.end_date: str = None
+        file: str = None
+        count: int = None
+        success: bool = None
+        exception: str = None
+        start_date: str = None
+        end_date: str = None
 
-    def startLogStatus(self, file):
-        self.file = file
-        self.start_date = datetime.now().strftime("%Y%m%d%H%M%S")
+    def startLogStatus(file):
+        file = file
+        start_date = datetime.now().strftime("%Y%m%d%H%M%S")
