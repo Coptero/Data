@@ -5,14 +5,11 @@ from pyspark.sql import *
 
 class S3FilesDsl:
     def readConfigJson(s3confPath):
-        s3Client = boto3.client('s3',region_name='eu-central-1')
-        bucketName = s3confPath.replace("s3://", "", 1).split("/", 0)
-        path = s3confPath.replace("s3://" + bucketName + "/", "", 1)
-        serializedObject = s3Client.object['Body'].read()
-        fields = json.loads(serializedObject)
+        with open(s3confPath) as json_file:
+            fields = json.load(json_file)
 
 
-        ConfigJson.ConfigJson(
+        configCop = ConfigJson.ConfigJson(
             str(fields["operational_path"]),
             str(fields["tags_admin_path"]),
             str(fields["tags_operating_path"]),
@@ -36,6 +33,8 @@ class S3FilesDsl:
             str(fields["elastic_password"])
         )
 
+        return configCop
+
     def readFileSchema(file, schema, spark):
         sqlContext = SQLContext(spark)
         s3File = sqlContext.read \
@@ -50,7 +49,8 @@ class S3FilesDsl:
         return s3File
 
     def readFile(file, spark):
-        s3File = spark.sqlContext.read \
+        sqlContext = SQLContext(spark)
+        s3File = sqlContext.read \
             .option("delimiter", "|") \
             .option("ignoreLeadingWhiteSpace", "true") \
             .option("ignoreTrailingWhiteSpace", "true") \
@@ -58,7 +58,8 @@ class S3FilesDsl:
         return s3File
 
     def readJsonFile(jsonFile, spark):
-        s3JsonFile = spark.sqlContext.read \
+        sqlContext = SQLContext(spark)
+        s3JsonFile = sqlContext.read \
             .option("multiline", "true") \
             .json(jsonFile)
         return s3JsonFile

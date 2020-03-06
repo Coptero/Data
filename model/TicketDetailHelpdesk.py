@@ -1,11 +1,12 @@
+import sys
+
+sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/")
 from dataclasses import dataclass
 from pyspark.sql import *  # DataFrame, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
 
 def getIncidSchema(file):
-    print("TICKET HELP DESK")
-    print(file)
     validationSchema = StructType([
         StructField("ticket_id", StringType(), True),
         StructField("portal_ticket_id", StringType(), True),
@@ -65,13 +66,13 @@ def getIncidSchema(file):
         StructField("admin_number", StringType(), True),
         StructField("instanceid", StringType(), True)
     ])
-    #validationSchema = file.schema
+    # validationSchema = file.schema
     corrupt_file_schema = [StructField("_corrupt_record", StringType(), True)]
     validationSchema = StructType(validationSchema.fields + corrupt_file_schema)
     return validationSchema
 
 
-def detailHPDColumns(file, spark):
+def detailHPDColumns(file):
     AdminNumberTags = ['ticket_id', 'portal_ticket_id', 'sigma_ticket_id', 'service_type', 'submitter',
                        'submit_date', 'last_modification_date', 'status_id', 'substatus_id', 'assigned_support_company',
                        'assigned_support_organization', 'assigned_support_group', 'reported_date', 'reported_source_id',
@@ -92,3 +93,5 @@ def detailHPDColumns(file, spark):
                        'ci_name', 'ci_country', 'ci_city', 'ci_id_fast', 'admin_number', 'instanceid']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
+
+    return file

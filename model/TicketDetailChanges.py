@@ -28,3 +28,4 @@ def detailHPDColumns(file, spark):
                        'ci_id_fast', 'admin_number', 'instanceid', 'class_crq', 'risl_level', 'change_reason']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
+    return file

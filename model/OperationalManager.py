@@ -5,7 +5,7 @@ from pyspark.sql.types import StringType, StructField, StructType
 
 class OperationalManager:
 
-    def operationalManagerColumns(file, spark):
+    def operationalManagerColumns(file):
         AdminNumberTags = ['operating_company_name', 'operating_le', 'operational_manager']
         for c, n in zip(file.columns, AdminNumberTags):
             file = file.withColumnRenamed(c, n)

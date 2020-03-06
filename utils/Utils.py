@@ -1,13 +1,11 @@
 import sys
-
-folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
-sys.path.append(folderPath)
+sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/")
 from pyspark import *
 import pyspark.sql.functions as F
 from datetime import date, datetime, timedelta
 from pyspark.sql import DataFrame, Row
 from pyspark.sql.types import StringType
-# from config.CopteroConfig import CopteroConfig
+#from config.CopteroConfig import CopteroConfig
 from model.Network import Network
 
 
@@ -70,30 +68,36 @@ class Utils:
     validateNumeric = F.udf(validateNum, StringType())
 
     def kibana_country(fastCountry):
+        print("*********************** FAST COUNTRY  *************************")
+        print(fastCountry)
         kc = Constants.fastCountries2kibana.get(fastCountry)
-        if any(kc):
-            return kc
-        else:
+        print("*********************** KIABANA COUNTRY  *************************")
+        print(kc)
+        if kc is None:
             return ""
+        else:
+            return kc
 
     kibanaCountry = F.udf(kibana_country, StringType())
 
     def smc_ClusterFromGroup(supportGroup):
         smc = Constants.smcCluster.get(supportGroup)
-        if any(smc):
-            return smc
-        else:
+        if smc is None:
             return ""
+        else:
+            return smc
 
     smcClusterFromGroup = F.udf(smc_ClusterFromGroup, StringType())
 
     def concatTwoColums(c1, c2):
-        return c1 + Constants.CONCAT + c2
+        return str(c1) + Constants.CONCAT + str(c2)
 
     concat2Columns = F.udf(concatTwoColums, StringType())
 
     def concatThreeColums(c1, c2, c3):
-        return c1 + Constants.CONCAT + c2 + Constants.CONCAT + c3
+        print(" CONCAT ")
+        print(c1, ", " ,c2,", ", c3)
+        return str(c1) + Constants.CONCAT + str(c2) + Constants.CONCAT + str(c3)
 
     concat3Columns = F.udf(concatThreeColums, StringType())
 
@@ -122,7 +126,7 @@ class Utils:
                         pop = ne_carr[3, 6]
                     result = result.append(Network(pop, ne_carr, resource, customer, endCustomer, vendor))
 
-        if result.isEmpty:
+        if result == []:
             return None
         else:
             return result
@@ -138,7 +142,8 @@ class Utils:
             elif seqB is None:
                 return seqA
             else:
-                seqA.union(seqB)
+                #return seqA.union(seqB)
+                return seqA + seqB #no sabemos si esto es correcto
 
     mergeArrays = F.udf(mergeTwoArrays, StringType())
 

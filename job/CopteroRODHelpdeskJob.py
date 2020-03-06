@@ -1,5 +1,4 @@
 import sys
-
 folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
 sys.path.append(folderPath)
 from model import TicketDetailHelpdesk
@@ -9,8 +8,8 @@ from Dsl.ValidationsDsl import ValidationsDsl
 from Dsl.ElasticDsl import ElasticDsl
 from Dsl.AlertsDsl import AlertDsl
 from pyspark.sql import *
-# from pyspark.sql import SparkSession
-# from pyspark import SparkContext
+#from pyspark.sql import SparkSession
+#from pyspark import SparkContext
 import logging
 from datetime import datetime
 from model.TicketDetailHelpdesk import getIncidSchema
@@ -21,8 +20,6 @@ import copy
 
 class CopteroRODHelpdeskJob(SparkJob):
     def runJob(sparkSession, s3confPath, s3filePath):
-        print("DENTRO DEL RUNJOB")
-        print(s3filePath)
         spark = sparkSession
         logStatus = LogESIndex.startLogStatus(s3filePath)
         dfCount = 0
@@ -30,19 +27,17 @@ class CopteroRODHelpdeskJob(SparkJob):
             logging.info(
                 "Start batch Coptero ROD for s3confPath:" + s3confPath + "--------------------------------------")
             validatedRecords = ValidationsDsl.validateTickets(s3filePath,
-                                                              S3FilesDsl.readFileSchema(s3filePath,
-                                                                                        getIncidSchema(s3filePath),
-                                                                                        spark), spark)
+                                                              S3FilesDsl.readFileSchema(s3filePath, getIncidSchema(s3filePath),spark), spark)
 
-            logging.info("fileDetailHelpdesk.count().." + validatedRecords.count())
+            logging.info("fileDetailHelpdesk.count().." + str( validatedRecords.count()) )
             rodTicketDetailHelpdesk = TicketDetailHelpdesk.detailHPDColumns(validatedRecords)
-            logging.info("rodTicketDetailHelpdesk.count.." + rodTicketDetailHelpdesk.count())
+            logging.info("rodTicketDetailHelpdesk.count.." + str(rodTicketDetailHelpdesk.count()) )
             # val cisClosedDates = getCIsLastClosedDates(rodTicketDetailHelpdesk)
-            esIndex = RemedyDsl.buildESIndex("helpdesk", rodTicketDetailHelpdesk, s3confPath, s3filePath)
+            esIndex = RemedyDsl.buildESIndex("helpdesk", rodTicketDetailHelpdesk, s3confPath, s3filePath, spark)
             # TODO ? esIndex.as[IncidESIndex]with Option[String] = None
             logging.info("Persisting ES index..")
-            dfCount = esIndex.count.toInt
-            logging.info("indexDataFrame.count.." + dfCount)
+            #dfCount = esIndex.count().toInt
+            #logging.info("indexDataFrame.count.." + dfCount)
             try:
                 ElasticDsl.writeMappedESIndex(esIndex, "copt-rod-closed-{ticket_max_value_partition}", "ticket_id")
             except Exception as e:
@@ -52,11 +47,11 @@ class CopteroRODHelpdeskJob(SparkJob):
                     # TODO saveToEs {partitioned} works fine but ends with exception ?¿
                     logging.info("catched index_closed_exception: " + e.getMessage)
 
-            AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount)
+            #AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount,spark)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True
-            logStatus.count = dfCount
+            #logStatus.count = dfCount
             logging.info("End batch Coptero ROD ----------------------------------------------------")
         except Exception as e:
             logStatus = copy.deepcopy(logStatus)
@@ -68,4 +63,4 @@ class CopteroRODHelpdeskJob(SparkJob):
             sqlContext = SQLContext(spark)
             logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus))
             logDataFrame.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
-            AlertDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")
+            ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")
