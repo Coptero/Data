@@ -1,6 +1,5 @@
 from pyspark import *
 
-
 class TicketUrgency:
 
     def urgencyColumns(file):

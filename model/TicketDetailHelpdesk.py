@@ -1,6 +1,5 @@
 import sys
-
-sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/")
+sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/") 
 from dataclasses import dataclass
 from pyspark.sql import *  # DataFrame, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
@@ -66,7 +65,7 @@ def getIncidSchema(file):
         StructField("admin_number", StringType(), True),
         StructField("instanceid", StringType(), True)
     ])
-    # validationSchema = file.schema
+    #validationSchema = file.schema
     corrupt_file_schema = [StructField("_corrupt_record", StringType(), True)]
     validationSchema = StructType(validationSchema.fields + corrupt_file_schema)
     return validationSchema
@@ -93,5 +92,5 @@ def detailHPDColumns(file):
                        'ci_name', 'ci_country', 'ci_city', 'ci_id_fast', 'admin_number', 'instanceid']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
-
+    
     return file

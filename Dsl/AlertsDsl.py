@@ -1,7 +1,6 @@
 # Faltan imports
 import sys
-folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
-sys.path.append(folderPath)
+sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/") 
 import logging
 from pyspark.sql import *
 from datetime import datetime

@@ -3,14 +3,14 @@ from pyspark.sql import *  # DataFrame, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
 
-def getPBISchema(file):
+def getPBISchema(file, spark):
     validationSchema = file.schema
     corrupt_file_schema = [StructField("_corrupt_record", StringType(), True)]
     validationSchema = StructType(validationSchema.fields + corrupt_file_schema)
     return validationSchema
 
 
-def detailPBMColumns(file):
+def detailPBMColumns(file, spark):
     AdminNumberTags = ['ticket_id', 'portal_ticket_id', 'sigma_ticket_id', 'bmc_ticket_submitter',
                        'bmc_ticket_submit_date',
                        'bmc_ticket_last_modified_by', 'bmc_ticket_last_modification_date', 'status_id', 'substatus_id',
@@ -34,4 +34,3 @@ def detailPBMColumns(file):
                        'instanceid', 'coordinator_group', 'problem_coordinator', 'assigned_group', 'assignee']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
-    return file
