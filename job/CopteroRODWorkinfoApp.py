@@ -1,19 +1,18 @@
-import sys
-folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
-sys.path.append(folderPath)
 from pyspark import SparkConf
 from pyspark import SparkContext
+import sys
+sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/")
 # import CopteroRODHelpdeskJob
-from job import CopteroRODHelpdeskJob
+from job import CopteroRODWorkinfoJob
 
 from pyspark.sql import SparkSession
 import argparse
 
 
-class CopteroRODHelpdeskApp:
+class CopteroRODWorkinfoJob:
 
     def main():
-        AppName = "Coptero ROD Helpdesk 5min Continuous Batch"
+        AppName = "Coptero ROD Workinfo 5min Continuous Batch"
         # spark = SparkSession.builder.appName(AppName).getOrCreate()
         # Construct the argument parser
         ap = argparse.ArgumentParser()
@@ -29,7 +28,7 @@ class CopteroRODHelpdeskApp:
             conf = SparkConf()
             conf.setAppName(AppName)
             sc = SparkContext(conf=conf)
-            CopteroRODHelpdeskJob.runJob(sc, s3confPath, s3filePath)
+            CopteroRODWorkinfoJob.runJob(sc, s3confPath, s3filePath)
         else:
             sys.exit(1)
 
