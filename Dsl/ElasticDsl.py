@@ -39,9 +39,7 @@ def toElasticRDD(config, dataRDD, idFunction, indexName):
 
 def addId(data):
     # Para insertar un dato en Elastic hay que crear esta estructura: id, doc_a_insertar
-    print("DENTRO DE ADDID")
-    print("DATOS: ",type(data))
-    return (data['InterfaceID'], json.dumps(data.collect()))
+    return ("1", json.dumps(data))
 
 
 class ElasticDsl:
@@ -55,7 +53,6 @@ class ElasticDsl:
         ).save()
 
     def writeESCorruptRecordsIndex(index, name):
-        print("DATOS: ", index)
         config = {
             "elastic_nodes": "127.0.0.1",
             "elastic_port": "9200",

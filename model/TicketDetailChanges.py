@@ -45,14 +45,17 @@ def getCRQSchema(file):
         StructField("portal_submit_date", StringType(), True),
         StructField("ci_id_fast", StringType(), True),
         StructField("admin_number", StringType(), True),
-        StructField("instanceid", StringType(), True)
+        StructField("instanceid", StringType(), True),
+        StructField("class_crq", StringType(), True),
+        StructField("risl_level", StringType(), True),
+        StructField("change_reason", StringType(), True)
     ])
     corrupt_file_schema = [StructField("_corrupt_record", StringType(), True)]
     validationSchema = StructType(validationSchema.fields + corrupt_file_schema)
     return validationSchema
 
 
-def detailHPDColumns(file, spark):
+def detailCHGColumns(file):
     AdminNumberTags = ['ticket_id', 'portal_ticket_id', 'ticket_submitter', 'ticket_submit_date', 'last_modified_by',
                        'last_modification_date', 'status_id', 'substatus_id', 'coordinator_company',
                        'coordinator_support_group',
@@ -67,7 +70,7 @@ def detailHPDColumns(file, spark):
                        'product_categorization_tier_3', 'operational_categorization_tier_1',
                        'operational_categorization_tier_2', 'operational_categorization_tier_3', 'ticket_summary',
                        'portal_submit_date',
-                       'ci_id_fast', 'admin_number', 'instanceid']
+                       'ci_id_fast', 'admin_number', 'instanceid', 'class_crq', 'risl_level', 'change_reason']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
     return file

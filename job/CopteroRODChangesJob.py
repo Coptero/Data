@@ -1,14 +1,12 @@
 import sys
 sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/")
 from model import TicketDetailHelpdesk
-from model.LogESIndex import LogESIndex
+from model.LogESIndex import LogESIndex, startLogStatus, logESindexSchema
 from Dsl.S3FilesDsl import S3FilesDsl
 from Dsl.ValidationsDsl import ValidationsDsl
 from Dsl.ElasticDsl import ElasticDsl
 from Dsl.AlertsDsl import AlertDsl
 from pyspark.sql import *
-#from pyspark.sql import SparkSession
-#from pyspark import SparkContext
 import logging
 from datetime import datetime
 from model.TicketDetailChanges import getCRQSchema, detailCHGColumns
@@ -20,7 +18,7 @@ import copy
 class CopteroRODChangesJob(SparkJob):
     def runJob(sparkSession, s3confPath, s3filePath):
         spark = sparkSession
-        logStatus = LogESIndex.startLogStatus(s3filePath)
+        logStatus = startLogStatus(s3filePath)
         dfCount = 0
         try:
             logging.info(
@@ -38,26 +36,32 @@ class CopteroRODChangesJob(SparkJob):
             try:
                 ElasticDsl.writeMappedESIndex(esIndexCHG, "copt-rod-crq-{ticket_max_value_partition}", "ticket_id")
             except Exception as e:
-                if e.getMessage.contains("index_closed_exception"):
+                message = str(e)
+                if message.find("index_closed_exception"):
                     raise e
                 else:
                     # TODO saveToEs {partitioned} works fine but ends with exception ?¿
-                    logging.info("catched index_closed_exception: " + e.getMessage)
+                    logging.info("catched index_closed_exception: " + str(e))
 
             #AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount,spark)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True
-            #logStatus.count = dfCount
+            logStatus.count = dfCount
+            logStatus.exception = ""
+            logStatus.end_date = ""
             logging.info("End batch Coptero ROD ----------------------------------------------------")
         except Exception as e:
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = False
-            logStatus.exception = e.getMessage
-            logging.error("catched: " + e.getMessage)
+            logStatus.count = dfCount
+            logStatus.exception = str(e)
+            logStatus.end_date = ""
+            logging.error("catched: " + str(e))
             raise e
         finally:
             sqlContext = SQLContext(spark)
-            logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus))
-            logDataFrame.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
+            logStatus.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
+            logStatus_data = logESindexSchema(logStatus.file, logStatus.count, logStatus.success, logStatus.exception,logStatus.start_date,logStatus.end_date)
+            logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus_data))
             ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")

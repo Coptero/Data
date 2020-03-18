@@ -10,9 +10,8 @@ class ValidationsDsl():
     def validateTickets(s3filePath, tickets, spark):
         sqlContext = SQLContext(spark)
         corruptRecords = tickets.filter(tickets._corrupt_record.isNotNull() | tickets.ticket_id.isNull())
-        #corruptRecords = sqlContext.createDataFrame(tickets.filter(tickets._corrupt_record.isNotNull() | tickets.ticket_id.isNull()))
         corruptRecords.cache()
-        corruptRecordsCount = len(corruptRecords.columns)
+        corruptRecordsCount = corruptRecords.count()
         logging.info("corruptRecords.count.." + str(corruptRecordsCount))
         corruptRecords.unpersist()
 
@@ -22,7 +21,7 @@ class ValidationsDsl():
 
         validatedRecords = tickets.filter(tickets._corrupt_record.isNull() & tickets.ticket_id.isNotNull())
         validatedRecords.cache()
-        logging.info("validatedRecords.count.." + str(len(validatedRecords.columns)))
+        logging.info("validatedRecords.count.." + str(validatedRecords.count()))
         validatedRecords.unpersist()
 
         return validatedRecords

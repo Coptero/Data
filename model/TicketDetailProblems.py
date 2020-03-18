@@ -3,10 +3,67 @@ from pyspark.sql import *  # DataFrame, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
 
-def getPBISchema(file, spark):
-    validationSchema = file.schema
-    corrupt_file_schema = [StructField("_corrupt_record", StringType(), True)]
-    validationSchema = StructType(validationSchema.fields + corrupt_file_schema)
+def getPBISchema(file):
+    validationSchema = StructType([
+        StructField("ticket_id", StringType(), True),
+        StructField("portal_ticket_id", StringType(), True),
+        StructField("sigma_ticket_id", StringType(), True),
+        StructField("bmc_ticket_submitter", StringType(), True),
+        StructField("bmc_ticket_submit_date", StringType(), True),
+        StructField("bmc_ticket_last_modified_by", StringType(), True),
+        StructField("bmc_ticket_last_modification_date", StringType(), True),
+        StructField("status_id", StringType(), True),
+        StructField("substatus_id", StringType(), True),
+        StructField("bmc_ticket_assigned_support_group_id", StringType(), True),
+        StructField("impact_id", StringType(), True),
+        StructField("urgency_id", StringType(), True),
+        StructField("priority_id", StringType(), True),
+        StructField("portal_ticket_summary", StringType(), True),
+        StructField("portal_ticket_notes", StringType(), True),
+        StructField("bmc_ticket_contact_first_name", StringType(), True),
+        StructField("bmc_ticket_contact_email", StringType(), True),
+        StructField("portal_end_user_site_location", StringType(), True),
+        StructField("bmc_ticket_required_resolution_date", StringType(), True),
+        StructField("bmc_ticket_father_id", StringType(), True),
+        StructField("bmc_ticket_last_resolved_date", StringType(), True),
+        StructField("bmc_ticket_closed_date", StringType(), True),
+        StructField("bmc_ticket_responded_date", StringType(), True),
+        StructField("bmc_model_version_id", StringType(), True),
+        StructField("bmc_product_id", StringType(), True),
+        StructField("bmc_manufacturer_id", StringType(), True),
+        StructField("portal_ticket_planned_start_date", StringType(), True),
+        StructField("admin_number", StringType(), True),
+        StructField("sigma_additional_information", StringType(), True),
+        StructField("sigma_ticket_description", StringType(), True),
+        StructField("product_categorization_tier_1", StringType(), True),
+        StructField("product_categorization_tier_2", StringType(), True),
+        StructField("product_categorization_tier_3", StringType(), True),
+        StructField("operational_categorization_tier_1", StringType(), True),
+        StructField("operational_categorization_tier_2", StringType(), True),
+        StructField("operational_categorization_tier_3", StringType(), True),
+        StructField("resolution_category_tier_1", StringType(), True),
+        StructField("resolution_category_tier_2", StringType(), True),
+        StructField("resolution_category_tier_3", StringType(), True),
+        StructField("bmc_ticket_summary", StringType(), True),
+        StructField("bmc_ticket_owner_support_group_id", StringType(), True),
+        StructField("csp_lite_request_description", StringType(), True),
+        StructField("csp_lite_element_summary", StringType(), True),
+        StructField("csp_lite_additional_comments", StringType(), True),
+        StructField("csp_express_ci_id", StringType(), True),
+        StructField("ci_name", StringType(), True),
+        StructField("admin_number_1", StringType(), True),
+        StructField("ci_country", StringType(), True),
+        StructField("city", StringType(), True),
+        StructField("customer", StringType(), True),
+        StructField("ci_id_fast", StringType(), True),
+        StructField("admin_number_2", StringType(), True),
+        StructField("instanceid", StringType(), True),
+        StructField("coordinator_group", StringType(), True),
+        StructField("problem_coordinator", StringType(), True),
+        StructField("assigned_group", StringType(), True),
+        StructField("assignee", StringType(), True),
+        StructField("_corrupt_record", StringType(), True)
+    ])
     return validationSchema
 
 
@@ -34,3 +91,4 @@ def detailPBMColumns(file, spark):
                        'instanceid', 'coordinator_group', 'problem_coordinator', 'assigned_group', 'assignee']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
+    return file

@@ -22,8 +22,7 @@ def getRelationSchema(spark):
 
 
 def relationColumns(file, spark):
-    AdminNumberTags = ['relation_id', 'ticket_id', 'ticket_type', 'related_ticket_id', 'related_ticket_type',
-                       'association_type',
-                       'submit_date', 'relation_summary', 'status', 'submitter', 'instanceid']
+    AdminNumberTags = ['ticket_id', 'ticket_type', 'related_ticket_id', 'related_ticket_type', 'association_type', 'submit_date', 'relation_summary', 'status', 'submitter', 'instanceid']
     for c, n in zip(file.columns, AdminNumberTags):
         file = file.withColumnRenamed(c, n)
+    return file
