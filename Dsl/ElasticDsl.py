@@ -3,6 +3,7 @@ import sys
 import json
 import boto3
 from pyspark.sql import *
+from Dsl.S3FilesDsl import S3FilesDsl
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -43,45 +44,49 @@ def addId(data):
 
 
 class ElasticDsl:
-    def writeESLogIndex(index, name):
+    def writeESLogIndex(index, name, config):
+        prefix = S3FilesDsl.readConfigJson(config).elastic_env_index_prefix
         index.write.format(
             'org.elasticsearch.spark.sql'
         ).option(
             'es.write.operation', 'index'
         ).option(
-            'es.resource', name + datetime.now().strftime("%Y%m%d")
+            'es.resource', prefix + name + datetime.now().strftime("%Y")
         ).save()
 
-    def writeESCorruptRecordsIndex(index, name):
+    def writeESCorruptRecordsIndex(index, name, conf):
+        prefix = S3FilesDsl.readConfigJson(conf).elastic_env_index_prefix
         config = {
             "elastic_nodes": "127.0.0.1",
             "elastic_port": "9200",
             "elastic_user": "elastic",
             "elastic_pass": "changeme"
         }
-        toElastic(config, index, addId, "cop-lab-test")
+        toElastic(config, index, addId, prefix + name + datetime.now().strftime("%Y"))
         '''index.write.format(
             'org.elasticsearch.spark.sql'
         ).option(
             'es.write.operation', 'index'
         ).option(
-            'es.resource', name + datetime.now().strftime("%Y%m")
+            'es.resource', name + datetime.now().strftime("%Y")
         ).save()'''
 
-    def writeESAlertsIndex(index):
+    def writeESAlertsIndex(index, config):
+        prefix = S3FilesDsl.readConfigJson(config).elastic_env_index_prefix
         index.write.format(
             'org.elasticsearch.spark.sql'
         ).option(
             'es.write.operation', 'index'
         ).option(
-            'es.resource', 'copt-rod-alerts'
+            'es.resource', prefix + 'copt-rod-alerts'
         ).save()
 
-    def writeMappedESIndex(index, name, mapId):
+    def writeMappedESIndex(index, name, mapId, config):
+        prefix = S3FilesDsl.readConfigJson(config).elastic_env_index_prefix
         index.write.format(
             'org.elasticsearch.spark.sql'
         ).option(
             'es.mapping.id', mapId
         ).option(
-            'es.resource', name
+            'es.resource', prefix + name
         ).save()
