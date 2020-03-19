@@ -1,11 +1,11 @@
 import sys
-sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/")
+
+sys.path.append("C:/Users/gonza/Downloads/Data-master/")
 from pyspark import *
 import pyspark.sql.functions as F
 from datetime import date, datetime, timedelta
 from pyspark.sql import DataFrame, Row
 from pyspark.sql.types import StringType
-#from config.CopteroConfig import CopteroConfig
 from model.Network import Network
 
 
@@ -55,7 +55,11 @@ class Utils:
             "fast_access_diversity",
             "fast_max_resolution_time",
             "fast_service_availability",
-            "fast_provision_time"])
+            "fast_provision_time",
+            "fast_top_object_id",
+            "fast_top_object_id"
+            "fast_prod_spec"
+        ])
         return df
 
     def validateNum(field):
@@ -68,17 +72,23 @@ class Utils:
     validateNumeric = F.udf(validateNum, StringType())
 
     def kibana_country(fastCountry):
-        print("*********************** FAST COUNTRY  *************************")
-        print(fastCountry)
         kc = Constants.fastCountries2kibana.get(fastCountry)
-        print("*********************** KIABANA COUNTRY  *************************")
-        print(kc)
         if kc is None:
             return ""
         else:
             return kc
 
     kibanaCountry = F.udf(kibana_country, StringType())
+
+    def empty_EndCustomerCorrect(customer_correct, end_customer_correct):
+        if end_customer_correct is None:
+            return customer_correct
+        elif end_customer_correct == "":
+            return customer_correct
+        elif end_customer_correct == "_":
+            return end_customer_correct
+
+    emptyEndCustomerCorrect = F.udf(empty_EndCustomerCorrect, StringType())
 
     def smc_ClusterFromGroup(supportGroup):
         smc = Constants.smcCluster.get(supportGroup)
@@ -95,13 +105,11 @@ class Utils:
     concat2Columns = F.udf(concatTwoColums, StringType())
 
     def concatThreeColums(c1, c2, c3):
-        print(" CONCAT ")
-        print(c1, ", " ,c2,", ", c3)
         return str(c1) + Constants.CONCAT + str(c2) + Constants.CONCAT + str(c3)
 
     concat3Columns = F.udf(concatThreeColums, StringType())
 
-    def urlWhiteSpaces(field: str):
+    def urlWhiteSpaces(field):
         if field is None:
             return field
         else:
@@ -109,22 +117,50 @@ class Utils:
 
     urlWhitespaces = F.udf(urlWhiteSpaces, StringType())
 
-    def network_NestedObject(customer, endCustomer, routerInterfaceVendor):
+    def get_CircuitID(ci_name):
+        if ci_name is None:
+            return ci_name
+        else:
+            if ci_name.find("]- ID:EL"):
+                sub = ci_name[ci_name.find("]- ID:EL") + 8:]
+                return sub[0: sub.find("_")]
+            elif ci_name.find("]- ID:IC"):
+                sub = ci_name[ci_name.find("]- ID:IC") + 8:]
+                return sub[0: sub.find("_")]
+            else:
+                return None
+
+    getCircuitID = F.udf(get_CircuitID, StringType())
+
+    def network_NestedObject(customer, endCustomer, routerInterfaceVendorTypeSet):
         result = []
         # Do we need rest of cases?
-        if routerInterfaceVendor is None:
+        if routerInterfaceVendorTypeSet is None:
             None
         else:
-            if Row("router_interface", "vendor"):
+            if Row("router_interface", "vendor", "access_type"):
                 router_interface = Row("router_interface")
                 vendor = Row("vendor")
+                access_type = Row("access_type")
                 if Row("ne_carr", "resource"):
                     ne_carr = Row("ne_carr")
                     resource = Row("resource")
                     pop = ""
                     if len(ne_carr) > 5:
                         pop = ne_carr[3, 6]
-                    result = result.append(Network(pop, ne_carr, resource, customer, endCustomer, vendor))
+                    interface = resource
+                    if resource.startswith("Loopback"):
+                        interface = "Loopback"
+                        subInterface = resource[8:]
+                    elif resource.startswith("Tunnel"):
+                        interface = "Tunnel"
+                        subInterface = resource[6:]
+                    elif resource.find("_") and resource.find("."):
+                        interface = resource[resource.find("_") + 1: resource.find(".")]
+                        subInterface = resource[resource.find("_") + 1:]
+
+                    result = result.append(
+                        Network(pop, ne_carr, interface, subInterface, customer, endCustomer, vendor, access_type))
 
         if result == []:
             return None
@@ -132,6 +168,12 @@ class Utils:
             return result
 
     networkNestedObject = F.udf(network_NestedObject)
+
+    def string_ToArray(stringToSplit):
+        seq = stringToSplit.split(",")
+        return list(dict.fromkeys(seq))
+
+    stringToArray = F.udf(string_ToArray)
 
     def mergeTwoArrays(seqA, seqB):
         if (seqA is None) and (seqB is None):
@@ -142,10 +184,41 @@ class Utils:
             elif seqB is None:
                 return seqA
             else:
-                #return seqA.union(seqB)
-                return seqA + seqB #no sabemos si esto es correcto
+                # return seqA.union(seqB)
+                return seqA + seqB  # no sabemos si esto es correcto
 
     mergeArrays = F.udf(mergeTwoArrays, StringType())
+
+    def add_ToArray(element, seq):
+        if element == None and seq == None:
+            return None
+        elif element == None and seq != None:
+            return seq
+        elif element == "" and seq != None:
+            return seq
+        elif element != None and seq != None:
+            return [element]
+        elif element != None and seq == [""]:
+            return [element]
+        else:
+            return seq.insert(0, element)
+
+    addToArray = F.udf(add_ToArray)
+
+    def get_WorkInfoCategory(workInfoNotes):
+        if workInfoNotes is None:
+            return ""
+        else:
+            if workInfoNotes.startswith("Autodiagnóstico - WorkInfo 2"):
+                return "Info FAST"
+            elif workInfoNotes.startswith("Autodiagnóstico - WorkInfo 1"):
+                return "Auto diagnosis"
+            elif workInfoNotes.startswith("Subject:Incident Bulletin"):
+                return "Bulletin"
+            else:
+                return ""
+
+    getWorkInfoCategory = F.udf(get_WorkInfoCategory(), StringType())
 
     def getIndexPart(ticketId):
         if len(ticketId) is None:
@@ -156,7 +229,7 @@ class Utils:
             else:
                 try:
                     aux = int(ticketId[3:])
-                    return ((abs(aux - 1) / Constants.INDEX_PARTITION_SIZE) + 1) * Constants.INDEX_PARTITION_SIZE
+                    return (int((abs(aux - 1) / Constants.INDEX_PARTITION_SIZE) + 1)) * Constants.INDEX_PARTITION_SIZE
                 except:
                     return Constants.INDEX_PARTITION_SIZE
 
