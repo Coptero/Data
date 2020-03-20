@@ -22,14 +22,14 @@ class CopteroRODProblemsJob(SparkJob):
     def runJob(sparkSession, s3confPath, s3filePath):
 
         spark= sparkSession
-
+        conf = s3confPath
         logStatus = startLogStatus(s3filePath)
         dfCount = 0
 
         try:
             logging.info("Start batch Coptero ROD for s3confPath: " +s3confPath +"-------------------------------------")
 
-            validatedRecords  = ValidationsDsl.validateTickets(s3filePath, S3FilesDsl.readFileSchema(s3filePath, getPBISchema(s3filePath), spark), spark)
+            validatedRecords  = ValidationsDsl.validateTickets(s3filePath, S3FilesDsl.readFileSchema(s3filePath, getPBISchema(s3filePath), spark), spark, conf)
 
             rodTicketDetailProblems = detailPBMColumns(validatedRecords,spark)
             esIndexPBM = RemedyDsl.buildESIndex("problems", rodTicketDetailProblems, s3confPath, s3filePath,spark)
@@ -40,7 +40,7 @@ class CopteroRODProblemsJob(SparkJob):
             logging.info("indexProblemDataFrame.count().."+str(dfCount))
 
             try:
-                ElasticDsl.writeMappedESIndex(esIndexPBM, "copt-rod-pbi-{ticket_max_value_partition}", "ticket_id")
+                ElasticDsl.writeMappedESIndex(esIndexPBM, "copt-rod-pbi-{ticket_max_value_partition}", "ticket_id", conf)
             except Exception as ex:
                 e = str(ex)
                 if e.find("index_closed_exception"):
@@ -71,4 +71,4 @@ class CopteroRODProblemsJob(SparkJob):
             logStatus.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
             logStatus_data = logESindexSchema(logStatus.file, logStatus.count, logStatus.success, logStatus.exception, logStatus.start_date, logStatus.end_date)
             logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus_data))
-            ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")
+            ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-", conf)

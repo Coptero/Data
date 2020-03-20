@@ -20,7 +20,7 @@ class CopteroRODRelationJob(SparkJob):
 
     def runJob(sparkSession, s3confPath, s3filePath):
         spark = sparkSession
-
+        conf = s3confPath
         logStatus = startLogStatus(s3filePath)
         dfCountRelation = 0
         dfCountIncid = 0
@@ -29,7 +29,7 @@ class CopteroRODRelationJob(SparkJob):
             logging.info("Start batch Coptero ROD for s3confPath: " +
                         s3confPath + " -------------------------------------")
             validatedRecords = ValidationsDsl.validateTickets(s3filePath, S3FilesDsl.readFileSchema(
-                s3filePath, getRelationSchema(s3filePath), spark), spark)
+                s3filePath, getRelationSchema(s3filePath), spark), spark, conf)
 
             rodTicketRelation1 = relationColumns(validatedRecords, spark)
             rodTicketRelation = rodTicketRelation1.withColumn("relation_id", F.concat(rodTicketRelation1["ticket_id"],F.lit('-'), rodTicketRelation1["related_ticket_id"]))
@@ -46,7 +46,7 @@ class CopteroRODRelationJob(SparkJob):
 
             try:
                 ElasticDsl.writeMappedESIndex(
-                    partitioned, "copt-rod-rel-{ticket_max_value_partition}", "relation_id")
+                    partitioned, "copt-rod-rel-{ticket_max_value_partition}", "relation_id", conf)
             except Exception as ex:
                 e = str(ex)
                 if e.find("index_closed_exception"):
@@ -78,7 +78,7 @@ class CopteroRODRelationJob(SparkJob):
 
             try:
                 ElasticDsl.writeMappedESIndex(
-                    relationsDF, "copt-rod-closed-{ticket_max_value_partition}", "ticket_id")
+                    relationsDF, "copt-rod-closed-{ticket_max_value_partition}", "ticket_id", conf)
             except Exception as ex:
                 e = str(ex)
                 if e.find("index_closed_exception"):
@@ -107,4 +107,4 @@ class CopteroRODRelationJob(SparkJob):
             logStatus.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
             logStatus_data = logESindexSchema(logStatus.file, logStatus.count, logStatus.success, logStatus.exception, logStatus.start_date, logStatus.end_date)
             logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus_data))
-            ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")
+            ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-", conf)

@@ -1,22 +1,26 @@
 import sys
-sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/")
+folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
+sys.path.append(folderPath)
 from pyspark.sql import *
 from model import TicketDetailHelpdesk
 from model.LogESIndex import LogESIndex, startLogStatus, logESindexSchema
 from Dsl.S3FilesDsl import S3FilesDsl
 from Dsl.ValidationsDsl import ValidationsDsl
 from Dsl.ElasticDsl import ElasticDsl
+from Dsl.AlertsDsl import AlertDsl
+from model.AdminNumberTags import AdminNumberTags
 import logging
 from datetime import datetime
 from model.TicketDetailHelpdesk import getIncidSchema
 from utils.SparkJob import SparkJob
-from Dsl.RemedyDsl import RemedyDsl
+from Dsl.RemedyDsl import RemedyDsl, persistAgentSmc
 import copy
 
 
 class CopteroRODHelpdeskJob(SparkJob):
     def runJob(sparkSession, s3confPath, s3filePath):
         spark = sparkSession
+        conf = s3confPath
         logStatus = startLogStatus(s3filePath)
         dfCount = 0
         try:
@@ -25,7 +29,7 @@ class CopteroRODHelpdeskJob(SparkJob):
             validatedRecords = ValidationsDsl.validateTickets(s3filePath,
                                                               S3FilesDsl.readFileSchema(s3filePath,
                                                                                         getIncidSchema(s3filePath),
-                                                                                        spark), spark)
+                                                                                        spark), spark, conf)
 
             logging.info("fileDetailHelpdesk.count().." + str(validatedRecords.count()))
             rodTicketDetailHelpdesk = TicketDetailHelpdesk.detailHPDColumns(validatedRecords)
@@ -37,7 +41,7 @@ class CopteroRODHelpdeskJob(SparkJob):
             dfCount = esIndex.count()
             # logging.info("indexDataFrame.count.." + dfCount)
             try:
-                ElasticDsl.writeMappedESIndex(esIndex, "copt-rod-closed-{ticket_max_value_partition}", "ticket_id")
+                ElasticDsl.writeMappedESIndex(esIndex, "copt-rod-closed-{ticket_max_value_partition}", "ticket_id", conf)
             except Exception as e:
                 message = str(e)
                 if message.find("index_closed_exception"):
@@ -45,6 +49,8 @@ class CopteroRODHelpdeskJob(SparkJob):
                 else:
                     # TODO saveToEs {partitioned} works fine but ends with exception ?¿
                     logging.info("catched index_closed_exception: " + str(e))
+
+            persistAgentSmc(esIndex, s3confPath, spark)
 
             # AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount,spark)
 
@@ -68,5 +74,4 @@ class CopteroRODHelpdeskJob(SparkJob):
             logStatus_data = logESindexSchema(logStatus.file, logStatus.count, logStatus.success, logStatus.exception,
                                               logStatus.start_date, logStatus.end_date)
             logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus_data))
-            logDataFrame.show(5)
-            ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-")
+            ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-", conf)
