@@ -13,6 +13,8 @@ class S3FilesDsl:
             str(fields["operational_path"]),
             str(fields["tags_admin_path"]),
             str(fields["tags_operating_path"]),
+            str(fields["customer_path"]),
+            str(fields["end_customer_path"]),
             int(fields["fast_min_results"]),
             str(fields["fast_postgresql"]),
             str(fields["fast_user"]),
@@ -22,11 +24,21 @@ class S3FilesDsl:
             str(fields["fast_sc_query"]),
             str(fields["fast_agg_query"]),
             str(fields["fast_nni_query"]),
+            str(fields["fast_crm_query"]),
+            str(fields["fast_supplier_query"]),
+            str(fields["fast_ispwire_query"]),
             str(fields["fast_parquet_path"]),
             str(fields["fast_main_parquet_path"]),
             str(fields["fast_sc_parquet_path"]),
             str(fields["fast_agg_parquet_path"]),
             str(fields["fast_nni_parquet_path"]),
+            str(fields["fast_crm_parquet_path"]),
+            str(fields["fast_supplier_parquet_path"]),
+            str(fields["fast_ispwire_parquet_path"]),
+            str(fields["fast_network_parquet_path"]),
+            str(fields["rod_agent_smc_parquet_path"]),
+            str(fields["rod_relations_parquet_path"]),
+            str(fields["elastic_env_index_prefix"]),
             str(fields["elastic_nodes"]),
             str(fields["elastic_port"]),
             str(fields["elastic_user"]),
@@ -42,10 +54,12 @@ class S3FilesDsl:
             .option("quote", "") \
             .option("ignoreLeadingWhiteSpace", "true") \
             .option("ignoreTrailingWhiteSpace", "true") \
-            .option("mode", "DROPMALFORMED") \
             .option("mode", "PERMISSIVE") \
             .schema(schema) \
             .csv(file)
+            
+            #   .option("mode", "DROPMALFORMED") \
+
         return s3File
 
     def readFile(file, spark):

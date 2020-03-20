@@ -7,7 +7,7 @@ import pyspark.sql.functions as F
 
 
 class ValidationsDsl():
-    def validateTickets(s3filePath, tickets, spark):
+    def validateTickets(s3filePath, tickets, spark, s3confPath):
         sqlContext = SQLContext(spark)
         corruptRecords = tickets.filter(tickets._corrupt_record.isNotNull() | tickets.ticket_id.isNull())
         corruptRecords.cache()
@@ -17,7 +17,7 @@ class ValidationsDsl():
 
         if corruptRecordsCount > 0:
             withS3path = corruptRecords.withColumn("file", F.lit(s3filePath))
-            ElasticDsl.writeESCorruptRecordsIndex(withS3path, "copt-rod-corrupt-records-")
+            ElasticDsl.writeESCorruptRecordsIndex(withS3path, "copt-rod-corrupt-records-", s3confPath)
 
         validatedRecords = tickets.filter(tickets._corrupt_record.isNull() & tickets.ticket_id.isNotNull())
         validatedRecords.cache()
@@ -25,3 +25,4 @@ class ValidationsDsl():
         validatedRecords.unpersist()
 
         return validatedRecords
+
