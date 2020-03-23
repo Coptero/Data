@@ -34,7 +34,7 @@ class CopteroRODChangesJob(SparkJob):
 
             logging.info("Persisting ES index..")
             dfCount = esIndexCHG.count()
-            logging.info("indexDataFrame.count.." + dfCount)
+            logging.info("indexDataFrame.count.." + str(dfCount))
 
             try:
                 ElasticDsl.writeMappedESIndex(esIndexCHG, "copt-rod-crq-{ticket_max_value_partition}", "ticket_id", conf)
