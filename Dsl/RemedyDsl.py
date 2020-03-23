@@ -258,9 +258,7 @@ def getRelations(esIndex, s3confPath, spark):
     sqlContext = SQLContext(spark)
 
     parquet = sqlContext.read.parquet(S3FilesDsl.readConfigJson(s3confPath).rod_agent_smc_parquet_path)
-    parquet.printSchema()
-    esIndex.printSchema()
-    SSSS()
+
     agents = parquet \
         .filter(parquet.reported_source_id != parquet.Vendor) \
         .withColumnRenamed("ticket_id", "agent_ticket_id")
