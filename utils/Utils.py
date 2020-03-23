@@ -196,7 +196,7 @@ class Utils:
             return seq
         elif element == "" and seq != None:
             return seq
-        elif element != None and seq != None:
+        elif element != None and seq == None:
             return [element]
         elif element != None and seq == [""]:
             return [element]
