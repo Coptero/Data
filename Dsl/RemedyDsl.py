@@ -62,8 +62,8 @@ class RemedyDsl():
             rodTicketReportedSource = getReportedSource(spark)
             operationalManager = getOperationalManager(confJson.operational_path, spark)
             opTags = OperatingTags.operatingTagsColumns(S3FilesDsl.readFile(confJson.tags_operating_path, spark))
-            customer = Customer.customerColumns(S3FilesDsl.readFile(confJson.customer_path, spark))
-            endCustomer = endCustomer.endCustomerColumns(S3FilesDsl.readFile(confJson.end_customer_path, spark))
+            customer = Customer.customerColumns(S3FilesDsl.readFile(confJson.customer_path, spark), spark)
+            endCustomer = EndCustomer.endCustomerColumns(S3FilesDsl.readFile(confJson.end_customer_path, spark), spark)
 
             index1 = common \
                 .join(rodTicketReportedSource, ["reported_source_id"], "left") \
@@ -95,13 +95,13 @@ class RemedyDsl():
                                                  "operational_categorization_tier_3")) \
                 .withColumnRenamed("reported_source_desc", "reported_source_id")
 
-            index = fastCircuitFields(index1, confJson, spark)
+            index = FastDsl.fastCircuitFields(index1, confJson, spark)
 
         elif detailType == "problems":
             index1 = common \
                 .withColumn("ci_country", Utils.kibanaCountry("ci_country")) \
                 .withColumn("ci_name_escaped", Utils.urlWhitespaces("ci_name"))
-            index = fastCircuitFields(index1, confJson, spark)
+            index = FastDsl.fastCircuitFields(index1, confJson, spark)
 
         elif detailType == "changes":
             rodTicketReportedSource = getReportedSource(spark)
@@ -190,7 +190,7 @@ def persistAgentSmc(esIndex, s3confPath, spark):
 
     total.cache()
 
-    logging.info("total.count---------------------------------------------" + total.count())
+    logging.info("total.count---------------------------------------------" + str(total.count()))
 
     totalWithoutNewOrUpdated = total \
         .join(auxOuterJoin, ["ticket_id"], "left") \
@@ -198,23 +198,25 @@ def persistAgentSmc(esIndex, s3confPath, spark):
 
     updatedToParquet = totalWithoutNewOrUpdated.unionByName(newOrUpdated)
 
-    updatedToParquet \
+    result = updatedToParquet \
         .repartition(1) \
         .write \
         .mode("overwrite") \
         .parquet(S3FilesDsl.readConfigJson(s3confPath).rod_agent_smc_parquet_path)
+    return result
 
 
 def fullPersistAgentSmc(esIndex, s3confPath):
     preload = esIndex.select("ticket_id", "assigned_agent", "smc_cluster", "reported_source_id")
 
-    preload \
+    result = preload \
         .repartition(1) \
         .write \
         .mode("overwrite") \
         .parquet(S3FilesDsl.readConfigJson(s3confPath).rod_agent_smc_parquet_path)
 
-    logging.info("total.count---------------------------------------------" + preload.count())
+    logging.info("total.count---------------------------------------------" + str(preload.count()))
+    return result
 
 
 def removeClosedAgentSmc(esIndex, s3confPath, spark):
@@ -227,19 +229,21 @@ def removeClosedAgentSmc(esIndex, s3confPath, spark):
 
     total.cache()
 
-    logging.info("totalWithoutClosed.count---------------------------------------------" + total.count())
+    logging.info("totalWithoutClosed.count---------------------------------------------" + str(total.count()))
 
     totalWithoutClosed = total \
         .join(auxOuterJoin, ["ticket_id"], "left") \
         .where(auxOuterJoin["ticket_id"].isNull())
 
-    totalWithoutClosed \
+    result = totalWithoutClosed \
         .repartition(1) \
         .write \
         .mode("overwrite") \
         .parquet(S3FilesDsl.readConfigJson(s3confPath).rod_agent_smc_parquet_path)
 
-    logging.info("totalWithoutClosed.count---------------------------------------------" + totalWithoutClosed.count())
+    logging.info(
+        "totalWithoutClosed.count---------------------------------------------" + str(totalWithoutClosed.count()))
+    return result
 
 
 def getAgentSmcCluster(esIndex, s3confPath, spark):
@@ -247,13 +251,16 @@ def getAgentSmcCluster(esIndex, s3confPath, spark):
 
     parquet = sqlContext.read.parquet(S3FilesDsl.readConfigJson(s3confPath).rod_agent_smc_parquet_path)
 
-    esIndex.join(parquet.select("ticket_id", "smc_cluster", "assigned_agent"), ["ticket_id"], "left")
+    return esIndex.join(parquet.select("ticket_id", "smc_cluster", "assigned_agent"), ["ticket_id"], "left")
 
 
 def getRelations(esIndex, s3confPath, spark):
     sqlContext = SQLContext(spark)
 
     parquet = sqlContext.read.parquet(S3FilesDsl.readConfigJson(s3confPath).rod_agent_smc_parquet_path)
+    parquet.printSchema()
+    esIndex.printSchema()
+    SSSS()
     agents = parquet \
         .filter(parquet.reported_source_id != parquet.Vendor) \
         .withColumnRenamed("ticket_id", "agent_ticket_id")
@@ -266,11 +273,13 @@ def getRelations(esIndex, s3confPath, spark):
         .agg(F.collect_set("assigned_agent").alias("assignee"),
              F.collect_set("smc_cluster").alias("smc"))
 
-    esIndex \
+    result = esIndex \
         .join(relatedAgents, ["ticket_id"], "left") \
         .withColumn("assignee", Utils.addToArray("assigned_agent", "assignee")) \
         .withColumn("smc", Utils.addToArray("smc_cluster", "smc")) \
         .drop("assigned_agent", "smc_cluster")
+
+    return result
 
 
 def persistRelations(esIndexRel, s3confPath, spark):
@@ -297,12 +306,14 @@ def persistRelations(esIndexRel, s3confPath, spark):
             total = sqlContext.read.parquet(S3FilesDsl.readConfigJson(s3confPath).rod_relations_parquet_path)
 
     total.cache()
-    logging.info("total.count---------------------------------------------" + total.count())
+    logging.info("total.count---------------------------------------------" + str(total.count()))
 
-    total \
+    result = total \
         .unionByName(relationsDF) \
         .distinct() \
         .repartition(1) \
         .write \
         .mode("overwrite") \
         .parquet(S3FilesDsl.readConfigJson(s3confPath).rod_relations_parquet_path)
+
+    return result
