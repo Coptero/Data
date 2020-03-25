@@ -134,33 +134,31 @@ class Utils:
 
     def network_NestedObject(customer, endCustomer, routerInterfaceVendorTypeSet):
         result = []
-        # Do we need rest of cases?
-        if routerInterfaceVendorTypeSet is None:
-            None
-        else:
-            if Row("router_interface", "vendor", "access_type"):
-                router_interface = Row("router_interface")
-                vendor = Row("vendor")
-                access_type = Row("access_type")
-                if Row("ne_carr", "resource"):
-                    ne_carr = Row("ne_carr")
-                    resource = Row("resource")
-                    pop = ""
-                    if len(ne_carr) > 5:
-                        pop = ne_carr[3, 6]
-                    interface = resource
-                    if resource.startswith("Loopback"):
-                        interface = "Loopback"
-                        subInterface = resource[8:]
-                    elif resource.startswith("Tunnel"):
-                        interface = "Tunnel"
-                        subInterface = resource[6:]
-                    elif resource.find("_") and resource.find("."):
-                        interface = resource[resource.find("_") + 1: resource.find(".")]
-                        subInterface = resource[resource.find("_") + 1:]
+        if routerInterfaceVendorTypeSet is not None:
+            row_rivt = routerInterfaceVendorTypeSet[0].__getitem__("router_interface_vendor_type")
+            access_type = row_rivt[0].__getitem__("access_type")
+            vendor = row_rivt[0].__getitem__("vendor")
+            router_interface = row_rivt[0].__getitem__("router_interface")
+            ne_carr = router_interface[0].__getitem__("ne_carr")
+            resource = router_interface[0].__getitem__("resource")
 
-                    result = result.append(
-                        Network(pop, ne_carr, interface, subInterface, customer, endCustomer, vendor, access_type))
+            if row_rivt is not None:
+                if router_interface is not None and vendor is not None and access_type is not None:
+                    if ne_carr is not None and resource is not None:
+                        if len(ne_carr) > 5:
+                            pop = ne_carr[3: 6]
+                        interface = resource
+                        if resource.startswith("Loopback"):
+                            interface = "Loopback"
+                            subInterface = resource[8:]
+                        elif resource.startswith("Tunnel"):
+                            interface = "Tunnel"
+                            subInterface = resource[6:]
+                        elif resource.find("_") and resource.find("."):
+                            interface = resource[resource.find("_") + 1: resource.find(".")]
+                            subInterface = resource[resource.find("_") + 1:]
+                        result = result.append(
+                            Network(pop, ne_carr, interface, subInterface, customer, endCustomer, vendor, access_type))
 
         if result == []:
             return None
