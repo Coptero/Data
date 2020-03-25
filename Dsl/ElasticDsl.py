@@ -48,6 +48,8 @@ class ElasticDsl:
         prefix = S3FilesDsl.readConfigJson(config).elastic_env_index_prefix
         index.write.format(
             'org.elasticsearch.spark.sql'
+        ).mode(
+            'append'
         ).option(
             'es.write.operation', 'index'
         ).option(
