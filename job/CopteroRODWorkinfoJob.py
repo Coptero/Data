@@ -38,7 +38,7 @@ class CopteroRODWorkinfoJob(SparkJob):
 
             partitioned = indexWithRelations \
                 .withColumn("ticket_max_value_partition", Utils.getIndexPartition("ticket_id")) \
-                .withColumn("file", F.lit("s3filePath")) \
+                .withColumn("file", F.lit(s3filePath)) \
                 .withColumn("work_info_category", Utils.getWorkInfoCategory("work_info_notes"))
 
             dfCount = partitioned.count()
