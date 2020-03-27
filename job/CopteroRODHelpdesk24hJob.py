@@ -63,8 +63,11 @@ class CopteroRODHelpdesk24hJob(SparkJob):
                     # TODO saveToEs {partitioned} works fine but ends with exception ?¿
                     logging.info("catched index_closed_exception: " + str(e))
 
-            # AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount,spark)
+
             removeClosedAgentSmc(esIndex, s3confPath, spark)
+
+            AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount, spark, s3confPath)
+
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True
             logStatus.count = dfCount
