@@ -16,12 +16,13 @@ class AlertDsl:
         sqlContext = SQLContext(spark)
         logging.info('dfCount.. ' + str(dfCount))
         path = fileName.replace(':', '\\:').replace("/", "\\/")
-        qResultDF = sqlContext.read \
+        qResultDF1 = sqlContext.read \
             .option("es.resource",prefix + indexName) \
             .option("es.query", "?q=file:\''" + path + " '\'") \
             .format("org.elasticsearch.spark.sql") \
             .load()
         # ¿Equivalente de qResultDF = spark.esDF("${indexName}", "?q=file:\"" + path + "\"").select("ticket_id") ?
+        qResultDF = qResultDF1.select("ticket_id")
         qResultDF.cache()
         queryCount = qResultDF.count()
         qResultDF.unpersist()

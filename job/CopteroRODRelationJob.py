@@ -11,6 +11,7 @@ from Dsl.AlertsDsl import AlertDsl
 from Dsl.ValidationsDsl import ValidationsDsl
 from Dsl.S3FilesDsl import S3FilesDsl
 from Dsl.ElasticDsl import ElasticDsl
+from Dsl.RemedyDsl import persistRelations
 from pyspark.sql import *
 from datetime import datetime
 import copy
@@ -54,7 +55,7 @@ class CopteroRODRelationJob(SparkJob):
                 else:
                     raise ex
 
-            #AlertDsl.checkCount("copt-rod-rel-*", s3filePath, dfCountRelation)
+            AlertDsl.checkCount("copt-rod-rel-*", s3filePath, dfCountRelation, spark,conf)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True
@@ -62,7 +63,9 @@ class CopteroRODRelationJob(SparkJob):
             logStatus.exception = ""
             logStatus.end_date = ""
 
-            relationsDF = esIndexRel \
+            persistRelations(esIndexRel,conf,spark)
+
+            '''relationsDF = esIndexRel \
                 .filter(esIndexRel.ticket_type == "Incident") \
                 .groupBy("ticket_id") \
                 .agg(F.collect_list("related_ticket_id").alias("relations")) \
@@ -86,13 +89,14 @@ class CopteroRODRelationJob(SparkJob):
                 else:
                     raise ex
 
-            #AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCountIncid)
+            AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCountIncid, spark, conf)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True
             logStatus.count = dfCountIncid
             logStatus.exception = ""
-            logStatus.end_date = ""
+            logStatus.end_date = ""'''
+
             logging.info("End batch Coptero ROD ----------------------------------------------------")
         except Exception as ex:
             e = str(ex)

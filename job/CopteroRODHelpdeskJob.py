@@ -1,4 +1,5 @@
 import sys
+
 folderPath = "C:/Users/mou_i/Desktop/Python/LabCoptero/"
 sys.path.append(folderPath)
 from pyspark.sql import *
@@ -36,10 +37,13 @@ class CopteroRODHelpdeskJob(SparkJob):
             logging.info("rodTicketDetailHelpdesk.count.." + str(rodTicketDetailHelpdesk.count()))
             # val cisClosedDates = getCIsLastClosedDates(rodTicketDetailHelpdesk)
             esIndex = RemedyDsl.buildESIndex("helpdesk", rodTicketDetailHelpdesk, s3confPath, s3filePath, spark)
+            print("NUESTRO DATAFRAME")
+            esIndex.show()
+            print("VUESTRO DATAFRAME")
             # TODO ? esIndex.as[IncidESIndex]with Option[String] = None
             logging.info("Persisting ES index..")
             dfCount = esIndex.count()
-            # logging.info("indexDataFrame.count.." + dfCount)
+            logging.info("indexDataFrame.count.." + str(dfCount))
             try:
                 ElasticDsl.writeMappedESIndex(esIndex, "copt-rod-closed-{ticket_max_value_partition}", "ticket_id", conf)
             except Exception as e:
@@ -52,7 +56,7 @@ class CopteroRODHelpdeskJob(SparkJob):
 
             persistAgentSmc(esIndex, s3confPath, spark)
 
-            # AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount,spark)
+            AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount, spark, conf)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True

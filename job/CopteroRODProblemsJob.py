@@ -48,7 +48,7 @@ class CopteroRODProblemsJob(SparkJob):
                 else:
                     raise ex
 
-            #AlertDsl.checkCount("copt-rod-pbi-*", s3filePath, dfCount)
+            AlertDsl.checkCount("copt-rod-pbi-*", s3filePath, dfCount, spark, conf)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True
