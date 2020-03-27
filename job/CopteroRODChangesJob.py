@@ -46,7 +46,7 @@ class CopteroRODChangesJob(SparkJob):
                     # TODO saveToEs {partitioned} works fine but ends with exception ?¿
                     logging.info("catched index_closed_exception: " + ex)
 
-            #AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount,spark)
+            AlertDsl.checkCount("copt-rod-crq-*", s3filePath, dfCount, spark, s3confPath)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True
