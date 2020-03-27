@@ -8,14 +8,14 @@ from Dsl.S3FilesDsl import S3FilesDsl
 from Dsl.ValidationsDsl import ValidationsDsl
 from Dsl.ElasticDsl import ElasticDsl
 from Dsl.AlertsDsl import AlertDsl
-
+import pyspark.sql.functions as F
 # from pyspark.sql import SparkSession
 # from pyspark import SparkContext
 import logging
 from datetime import datetime
-from model.TicketToClose import getClosedSchema
+from model.TicketToClose import getClosedSchema, detailClosedColumns
 from utils.SparkJob import SparkJob
-from Dsl.RemedyDsl import RemedyDsl
+from utils.Utils import Constants, Utils
 import copy
 
 
@@ -30,11 +30,11 @@ class CopteroRODCloseTicketsJob(SparkJob):
             validatedRecords = ValidationsDsl.validateTickets(s3filePath,
                                                               S3FilesDsl.readFileSchema(s3filePath,
                                                                                         getClosedSchema(s3filePath),
-                                                                                        spark,
-                                                                                        s3confPath), spark)
+                                                                                        spark),
+                                                                                        spark, s3confPath)
 
             logging.info("validatedRecords.count().." + str(validatedRecords.count()))
-            ticketToCloseDS = TicketToClose.detailClosedColumns(validatedRecords)
+            ticketToCloseDS = detailClosedColumns(validatedRecords, spark)
             logging.info("ticketToCloseDS.count().." + str(ticketToCloseDS.count()))
 
             esIndex = ticketToCloseDS\
@@ -44,7 +44,8 @@ class CopteroRODCloseTicketsJob(SparkJob):
 
             logging.info("Persisting ES index..")
             dfCount = esIndex.count()
-            # logging.info("indexDataFrame.count.." + dfCount)
+            logging.info("indexDataFrame.count.." + str(dfCount))
+            
             try:
                 ElasticDsl.writeMappedESIndex(esIndex, "copt-rod-closed-{ticket_max_value_partition}", "ticket_id", s3confPath)
             except Exception as e:
@@ -54,8 +55,6 @@ class CopteroRODCloseTicketsJob(SparkJob):
                 else:
                     # TODO saveToEs {partitioned} works fine but ends with exception ?¿
                     logging.info("catched index_closed_exception: " + str(e))
-
-            # AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount,spark)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True
@@ -73,13 +72,8 @@ class CopteroRODCloseTicketsJob(SparkJob):
             raise e
         finally:
             sqlContext = SQLContext(spark)
-            # logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus))
-            # statusSchema = logStatusSchema()
-            # logDataFrame = sqlContext.createDataFrame([logStatus.file, logStatus.count, logStatus.success, logStatus.exception,logStatus.start_date,logStatus.end_date],statusSchema)
             logStatus.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
             logStatus_data = logESindexSchema(logStatus.file, logStatus.count, logStatus.success, logStatus.exception,
                                               logStatus.start_date, logStatus.end_date)
             logDataFrame = sqlContext.createDataFrame(copy.deepcopy(logStatus_data))
-            # logDataFrame.end_date = datetime.now().strftime("%Y%m%d%H%M%S")
-            logDataFrame.show(5)
             ElasticDsl.writeESLogIndex(logDataFrame, "copt-rod-log-", s3confPath)
