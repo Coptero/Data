@@ -1,50 +1,50 @@
-from model.FastNNIL2 import nnil2Columns
-from model.FastByAdmin import fastColumns
-from model.FastPrincipal import principalColumns
-from model.FastServiceCircuit import scColumns
-from model.FastAggregated import aggColumns
-from model.FastCRM import crmColumns
-from model.FastSupplier import supplierColumns
-from model.FastIspwire import ispwireColumns
-from Dsl.S3FilesDsl import readFile
+from model.FastByAdmin import FastByAdmin
+from model.FastPrincipal import FastPrincipal
+from model.FastServiceCircuit import FastServiceCircuit
+from model.FastAggregated import FastAggregated
+from model.FastCRM import FastCRM
+from model.FastSupplier import FastSupplier
+from model.FastIspwire import FastIspwire
+from model.FastNNIL2 import FastNNIL2
 from utils.Utils import Utils
 import pyspark.sql.functions as F
 import logging
+from pyspark.sql import *
 
 
 class FastDsl:
 
     def postgreSQLAdminNumber(url, query, user, password, spark):
         jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
-        return fastColumns.fastColumns(jdbcDF)
+        return FastByAdmin.fastColumns(jdbcDF)
 
     def postgreSQLMain(url, query, user, password, spark):
-        jdbcDF = readFile("s3://rpajares/scalaSparkJobs/exportQueryFASTprincipal.csv")
-        return principalColumns.principalColumns(jdbcDF)
+        jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
+        return FastPrincipal.principalColumns(jdbcDF)
 
     def postgreSQLServiceCircuit(url, query, user, password, spark):
         jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
-        return scColumns.scColumns(jdbcDF)
+        return FastServiceCircuit.scColumns(jdbcDF)
 
     def postgreSQLAggregated(url, query, user, password, spark):
         jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
-        return aggColumns.aggColumns(jdbcDF)
+        return FastAggregated.aggColumns(jdbcDF)
 
     def postgreNNIL2(url, query, user, password, spark):
         jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
-        return nnil2Columns.nnil2Columns(jdbcDF)
+        return FastNNIL2.nnil2Columns(jdbcDF)
 
     def postgreSQLCRM(url, query, user, password, spark):
         jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
-        return crmColumns.crmColumns(jdbcDF)
+        return FastCRM.crmColumns(jdbcDF)
 
     def postgreSQLSupplier(url, query, user, password, spark):
         jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
-        return supplierColumns.supplierColumns(jdbcDF)
+        return FastSupplier.supplierColumns(jdbcDF)
 
     def postgreSQLIspwire(url, query, user, password, spark):
         jdbcDF = FastDsl.postgreSQL(url, query, user, password, spark)
-        return ispwireColumns.ispwireColumns(jdbcDF)
+        return FastIspwire.ispwireColumns(jdbcDF)
 
     def postgreSQL(url, query, user, password, spark):
         return spark.read \
@@ -67,11 +67,11 @@ class FastDsl:
         sqlContext = SQLContext(spark)
         return sqlContext.read.parquet(confJson.fast_ispwire_parquet_path)
 
-    def fastCircuitFields(confJson, df, spark):
+    def fastCircuitFields(df, confJson, spark):
         sqlContext = SQLContext(spark)
         crmFast = FastDsl.getCRMFast(confJson, spark)
         supplierFast = FastDsl.getSupplierFast(confJson, spark)
-        ispwireFast = FastDsl.getIspwireFast(confJson)
+        ispwireFast = FastDsl.getIspwireFast(confJson, spark)
 
         Fastdf = df.withColumn("circuit_id", Utils.getCircuitID("ci_name")) \
             .join(crmFast, ["circuit_id"], "left") \
