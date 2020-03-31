@@ -6,7 +6,7 @@ from pyspark.sql import *
 import logging
 from utils.SparkJob import SparkJob
 from Dsl.FastDsl import FastDsl
-
+from utils.CryptUtils import decrypt
 
 class CopteroRODChangesJob(SparkJob):
     def runJob(sparkSession, s3confPath, s3filePath):
@@ -25,7 +25,9 @@ class CopteroRODChangesJob(SparkJob):
         queryCRM = confJson.fast_crm_query
         querySupplier = confJson.fast_supplier_query
         queryIspwire = confJson.fast_ispwire_query
+        confJson.fast_user = b'gAAAAABegymLKE0IhWWVCBoQ9PysJTCPLiEx1HFmE9xilxmFeIfTMy-bEHwJADmPj78AM81yQ3engmBAWapFQ5ZDgJ1teF597w=='
         user = decrypt(confJson.fast_user)
+        confJson.fast_password = b'gAAAAABegymLKE0IhWWVCBoQ9PysJTCPLiEx1HFmE9xilxmFeIfTMy-bEHwJADmPj78AM81yQ3engmBAWapFQ5ZDgJ1teF597w=='
         password = decrypt(confJson.fast_password)
         minResults = confJson.fast_min_results
         parquetPath = confJson.fast_parquet_path
