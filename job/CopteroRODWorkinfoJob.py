@@ -30,7 +30,6 @@ class CopteroRODWorkinfoJob(SparkJob):
                                                               S3FilesDsl.readFileSchema(s3filePath, getWISchema(s3filePath), spark),
                                                               spark,
                                                               s3confPath)
-            # Necesitamos ? rodTicketWorkinfoHelpdesk = workInfoHPDColumns(validatedRecords)
 
             indexAgentSmcCluster = getAgentSmcCluster(validatedRecords, s3confPath, spark)
 
@@ -56,7 +55,7 @@ class CopteroRODWorkinfoJob(SparkJob):
                     # TODO saveToEs {partitioned} works fine but ends with exception ?¿
                     logging.info("catched index_closed_exception: " + str(e))
 
-            # AlertDsl.checkCount("copt-rod-closed-*", s3filePath, dfCount,spark)
+            AlertDsl.checkCount("copt-rod-wif*", s3filePath, dfCount, spark, s3confPath)
 
             logStatus = copy.deepcopy(logStatus)
             logStatus.success = True

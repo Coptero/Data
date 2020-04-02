@@ -1,7 +1,7 @@
 import logging
 import sys
 
-sys.path.append("C:/Users/gonza/Downloads/Data-master/")
+sys.path.append("C:/Users/gonza/Downloads/LABSpark/")
 from model.AdminNumberTags import AdminNumberTags
 from model.FastByAdmin import FastByAdmin
 
@@ -13,12 +13,14 @@ from model.TicketReportedSource import TicketReportedSource
 from model.TicketStatus import TicketStatus
 from model.TicketSubstatus import TicketSubstatus
 from model.TicketUrgency import TicketUrgency
+from model.Customer import Customer
+from model.EndCustomer import EndCustomer
 from pyspark.sql import *
 import pyspark.sql.functions as F
 from Dsl.S3FilesDsl import S3FilesDsl
+from Dsl.FastDsl import FastDsl
 from Dsl.DynamoDBDsl import DynamoDBDsl
 from utils.Utils import Constants, Utils
-
 
 
 class RemedyDsl():
@@ -42,8 +44,11 @@ class RemedyDsl():
         # TODO: añadir import de utils.constantes
         # TODO: comprobar parametros que se pasan a los metodos de Utils
         common3 = joinMasterEntities(detail, spark)
+
         common2 = common3.join(rodPostgreAdminNumber, ["admin_number"], "left")
+
         common1 = Utils.fillEmptyFastColumns(common2)
+
         common = common1.join(networkFast, ["admin_number"], "left"). \
             withColumn("networkinfo", Utils.networkNestedObject("fast_customer", "fast_end_customer",
                                                                 "router_interface_vendor_type_set")). \

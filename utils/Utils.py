@@ -165,13 +165,17 @@ class Utils:
         else:
             return result
 
+
     networkNestedObject = F.udf(network_NestedObject)
+
 
     def string_ToArray(stringToSplit):
         seq = stringToSplit.split(",")
         return list(dict.fromkeys(seq))
 
+
     stringToArray = F.udf(string_ToArray)
+
 
     def mergeTwoArrays(seqA, seqB):
         if (seqA is None) and (seqB is None):
@@ -185,7 +189,9 @@ class Utils:
                 # return seqA.union(seqB)
                 return seqA + seqB  # no sabemos si esto es correcto
 
+
     mergeArrays = F.udf(mergeTwoArrays, StringType())
+
 
     def add_ToArray(element, seq):
         if element == None and seq == None:
@@ -195,13 +201,17 @@ class Utils:
         elif element == "" and seq != None:
             return seq
         elif element != None and seq == None:
-            return [element]
+            return element
         elif element != None and seq == [""]:
-            return [element]
+            return element
         else:
-            return seq.insert(0, element)
+            seq.insert(0, element)
+            seq_str = ', '.join(seq)
+            return seq_str
+
 
     addToArray = F.udf(add_ToArray)
+
 
     def get_WorkInfoCategory(workInfoNotes):
         if workInfoNotes is None:
@@ -216,7 +226,9 @@ class Utils:
             else:
                 return ""
 
-    getWorkInfoCategory = F.udf(get_WorkInfoCategory(), StringType())
+
+    getWorkInfoCategory = F.udf(get_WorkInfoCategory, StringType())
+
 
     def getIndexPart(ticketId):
         if len(ticketId) is None:
@@ -230,6 +242,7 @@ class Utils:
                     return (int((abs(aux - 1) / Constants.INDEX_PARTITION_SIZE) + 1)) * Constants.INDEX_PARTITION_SIZE
                 except:
                     return Constants.INDEX_PARTITION_SIZE
+
 
     getIndexPartition = F.udf(getIndexPart, StringType())
 
