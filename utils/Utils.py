@@ -75,7 +75,7 @@ class Utils:
     def kibana_country(fastCountry):
         kc = Constants.fastCountries2kibana.get(fastCountry)
         if kc is None:
-            return ""
+            return fastCountry
         else:
             return kc
 
@@ -86,7 +86,7 @@ class Utils:
             return customer_correct
         elif end_customer_correct == "":
             return customer_correct
-        elif end_customer_correct == "_":
+        else:
             return end_customer_correct
 
     emptyEndCustomerCorrect = F.udf(empty_EndCustomerCorrect, StringType())
