@@ -1,11 +1,13 @@
 import sys
 
-sys.path.append("C:/Users/gonza/Downloads/Data-master/")
+sys.path.append("C:/Users/mou_i/Desktop/Python/LabCoptero/")
 from pyspark import *
 import pyspark.sql.functions as F
 from datetime import date, datetime, timedelta
 from pyspark.sql import DataFrame, Row
 from pyspark.sql.types import StringType
+import json
+# from config.CopteroConfig import CopteroConfig
 from model.Network import Network
 
 
@@ -19,7 +21,6 @@ class Utils:
         while startDate <= endDate:
             dayIt = dayIt + starBracket + startDate.strftime("year = %Y and month = %m and day = %d") + endBracket
             dayIt = dayIt + " or "
-            print(dayIt)
             startDate += delta
 
         dayIt = dayIt + endBracket
@@ -136,18 +137,21 @@ class Utils:
         result = []
         if routerInterfaceVendorTypeSet is not None:
             row_rivt = routerInterfaceVendorTypeSet[0].__getitem__("router_interface_vendor_type")
-            access_type = row_rivt[0].__getitem__("access_type")
-            vendor = row_rivt[0].__getitem__("vendor")
-            router_interface = row_rivt[0].__getitem__("router_interface")
-            ne_carr = router_interface[0].__getitem__("ne_carr")
-            resource = router_interface[0].__getitem__("resource")
-
             if row_rivt is not None:
+                access_type = row_rivt[0].__getitem__("access_type")
+                vendor = row_rivt[0].__getitem__("vendor")
+                router_interface = row_rivt[0].__getitem__("router_interface")
+                ne_carr = router_interface[0].__getitem__("ne_carr")
+                resource = router_interface[0].__getitem__("resource")
+
+                # Do we need rest of cases?
                 if router_interface is not None and vendor is not None and access_type is not None:
                     if ne_carr is not None and resource is not None:
+                        pop = ""
                         if len(ne_carr) > 5:
                             pop = ne_carr[3: 6]
                         interface = resource
+                        subInterface = ""
                         if resource.startswith("Loopback"):
                             interface = "Loopback"
                             subInterface = resource[8:]
@@ -157,25 +161,22 @@ class Utils:
                         elif resource.find("_") and resource.find("."):
                             interface = resource[resource.find("_") + 1: resource.find(".")]
                             subInterface = resource[resource.find("_") + 1:]
-                        result = result.append(
-                            Network(pop, ne_carr, interface, subInterface, customer, endCustomer, vendor, access_type))
+                        network = Network(pop, ne_carr, interface, subInterface, customer, endCustomer, vendor,
+                                          access_type)
+                        result.append(vars(network))
 
-        if result == []:
-            return None
+        if result is not None:
+            return json.dumps(result)[1:-1]
         else:
-            return result
-
+            return None
 
     networkNestedObject = F.udf(network_NestedObject)
-
 
     def string_ToArray(stringToSplit):
         seq = stringToSplit.split(",")
         return list(dict.fromkeys(seq))
 
-
     stringToArray = F.udf(string_ToArray)
-
 
     def mergeTwoArrays(seqA, seqB):
         if (seqA is None) and (seqB is None):
@@ -189,9 +190,7 @@ class Utils:
                 # return seqA.union(seqB)
                 return seqA + seqB  # no sabemos si esto es correcto
 
-
     mergeArrays = F.udf(mergeTwoArrays, StringType())
-
 
     def add_ToArray(element, seq):
         if element == None and seq == None:
@@ -209,9 +208,7 @@ class Utils:
             seq_str = ', '.join(seq)
             return seq_str
 
-
     addToArray = F.udf(add_ToArray)
-
 
     def get_WorkInfoCategory(workInfoNotes):
         if workInfoNotes is None:
@@ -226,9 +223,7 @@ class Utils:
             else:
                 return ""
 
-
     getWorkInfoCategory = F.udf(get_WorkInfoCategory, StringType())
-
 
     def getIndexPart(ticketId):
         if len(ticketId) is None:
@@ -242,7 +237,6 @@ class Utils:
                     return (int((abs(aux - 1) / Constants.INDEX_PARTITION_SIZE) + 1)) * Constants.INDEX_PARTITION_SIZE
                 except:
                     return Constants.INDEX_PARTITION_SIZE
-
 
     getIndexPartition = F.udf(getIndexPart, StringType())
 
