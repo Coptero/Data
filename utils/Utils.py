@@ -138,35 +138,37 @@ class Utils:
             endCustomer = ""
         result = []
         if routerInterfaceVendorTypeSet is not None:
-            row_rivt = routerInterfaceVendorTypeSet[0].__getitem__("router_interface_vendor_type")
-            if row_rivt is not None:
-                for i in range(len(row_rivt)):
-                    router_interface = row_rivt[i].__getitem__("router_interface")
-                    access_type = row_rivt[i].__getitem__("access_type")
-                    vendor = row_rivt[i].__getitem__("vendor")
-                    router_interface = row_rivt[i].__getitem__("router_interface")
-                    ne_carr = router_interface[0].__getitem__("ne_carr")
-                    resource = router_interface[0].__getitem__("resource")
-                    # Do we need rest of cases?
-                    if router_interface is not None and vendor is not None and access_type is not None:
-                        if ne_carr is not None and resource is not None:
-                            pop = ""
-                            if len(ne_carr) > 5:
-                                pop = ne_carr[3: 6]
-                            interface = resource
-                            subInterface = ""
-                            if resource.startswith("Loopback"):
-                                interface = "Loopback"
-                                subInterface = resource[8:]
-                            elif resource.startswith("Tunnel"):
-                                interface = "Tunnel"
-                                subInterface = resource[6:]
-                            elif resource.find("_") and resource.find("."):
-                                interface = resource[resource.find("_") + 1: resource.find(".")]
-                                subInterface = resource[resource.find("_") + 1:]
-                            network = Network(pop, ne_carr, access_type, endCustomer, subInterface, vendor, interface,
-                                              customer)
-                            result.append(vars(network))
+            for i in range(len(routerInterfaceVendorTypeSet)):
+                row_rivt = routerInterfaceVendorTypeSet[i].__getitem__("router_interface_vendor_type")
+                if row_rivt is not None:
+                    for j in range(len(row_rivt)):
+                        router_interface = row_rivt[j].__getitem__("router_interface")
+                        access_type = row_rivt[j].__getitem__("access_type")
+                        vendor = row_rivt[j].__getitem__("vendor")
+                        router_interface = row_rivt[j].__getitem__("router_interface")
+                        for k in range(len(router_interface)):
+                            ne_carr = router_interface[k].__getitem__("ne_carr")
+                            resource = router_interface[k].__getitem__("resource")
+                            # Do we need rest of cases?
+                            if router_interface is not None and vendor is not None and access_type is not None:
+                                if ne_carr is not None and resource is not None:
+                                    pop = ""
+                                    if len(ne_carr) > 5:
+                                        pop = ne_carr[3: 6]
+                                    interface = resource
+                                    subInterface = ""
+                                    if resource.startswith("Loopback"):
+                                        interface = "Loopback"
+                                        subInterface = resource[8:]
+                                    elif resource.startswith("Tunnel"):
+                                        interface = "Tunnel"
+                                        subInterface = resource[6:]
+                                    elif resource.find("_") != -1 and resource.find(".") != -1:
+                                        interface = resource[resource.find("_") + 1: resource.find(".")]
+                                        subInterface = resource[resource.find("_") + 1:]
+                                    network = Network(pop, ne_carr, access_type, endCustomer, subInterface, vendor,
+                                                      interface, customer)
+                                    result.append(vars(network))
 
         if result is not None:
             return json.dumps(result)[1:-1]
