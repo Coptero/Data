@@ -149,7 +149,6 @@ class Utils:
                         for k in range(len(router_interface)):
                             ne_carr = router_interface[k].__getitem__("ne_carr")
                             resource = router_interface[k].__getitem__("resource")
-                            # Do we need rest of cases?
                             if router_interface is not None and vendor is not None and access_type is not None:
                                 if ne_carr is not None and resource is not None:
                                     pop = ""
