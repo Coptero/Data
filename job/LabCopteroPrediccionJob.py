@@ -38,15 +38,14 @@ class LabCopteroPrediccionJob(SparkJob):
         upgradeSegundoIntervalo = cogerFechas('2018-10', '2019-11', G00In)
         upgradeTercerIntervalo = cogerFechas('2019-11', '2020-02', G00In)
 
-        print("\nUpgrade Primer Intervalo")
-        regresionesPercetiles(upgradePrimerIntervalo, [.1, .2, .3, .5, .6, .7, .8, .9, .95, .96, .97, .98, .99], 3,
-                              12.3, 0.9)
+        #print("\nUpgrade Primer Intervalo")
+        #regresionesPercetiles(upgradePrimerIntervalo, [.1, .2, .3, .5, .6, .7, .8, .9, .95, .96, .97, .98, .99], 3, 12.3, 0.9)
         print("\nUpgrade Segundo Intervalo")
-        regresionesPercetiles(upgradeSegundoIntervalo, [.1, .2, .3, .5, .6, .7, .8, .9, .95, .96, .97, .98, .99], 8, 16,
-                              0.82)
-        print("\nUpgrade Tercer Intervalo")
-        regresionesPercetiles(upgradeTercerIntervalo, [.1, .2, .3, .5, .6, .7, .8, .9, .95, .96, .97, .98, .99], 3,
-                              12.3, 0.9)
+        fechaSupera, predicciones = regresionesPercetiles(upgradeSegundoIntervalo[:-2000], [.90, .95, .96, .97, .98, .99], 3, 16, .82)
+        print(fechaSupera)
+        print(predicciones)
+        #print("\nUpgrade Tercer Intervalo")
+        #regresionesPercetiles(upgradeTercerIntervalo, [.1, .2, .3, .5, .6, .7, .8, .9, .95, .96, .97, .98, .99], 3, 12.3, 0.9)
 
 
 def cogerFechas(fechaMin, fechaMax, serie):
@@ -59,7 +58,7 @@ def cogerFechas(fechaMin, fechaMax, serie):
     return df.drop(['DT_MEASURE_DATETIME'], axis=1)
 
 
-def regresionesPercetiles(serie, quantiles, meses, caudalM, porcentaje):
+def regresionesPercetiles(serie, cuantiles, meses, caudalM, porcentaje, tipoFun='lineal'):
     # Indices y datos a usar en el modelo
     a = serie.shape[0]
     index = np.arange(1, a + 1)
@@ -67,7 +66,7 @@ def regresionesPercetiles(serie, quantiles, meses, caudalM, porcentaje):
     x = np.reshape(index, (a, 1))
     # El eje y son los valores de la serie con los datos del tráfico
     y = serie.iloc[:, [0]].values[:, 0]
-    # Guardamos los nuevos datos
+    # Guardamos los nuevos datos para el modelo
     data = {'x': x, 'y': y}
     # Multiplicamos el numero de meses por los puntos en un dia y los dias en un mes
     a = a + meses * 288 * 30
@@ -77,23 +76,25 @@ def regresionesPercetiles(serie, quantiles, meses, caudalM, porcentaje):
     # formada por el numero de valores de la serie mas los puntos a predecir
     date_list = [serie.index[0] + timedelta(minutes=5 * x) for x in range(0, a)]
     fechas = pd.to_datetime(date_list)
-    # y = np.reshape(serie['percentil'].values, (a,1))
-    # y = serie.iloc[:,[0]].values
-    # data = pd.DataFrame({'x': serie.iloc[:,1] , 'y': serie.iloc[:,0]})
-    # Definicion del modelo, lineal
-    mod = smf.quantreg('y ~ x', data)
-    # Entrenamos el modelo con cada uno de los quantiles
-    res_all = [mod.fit(q=q) for q in quantiles]
-    res_ols = smf.ols('y ~ x', data).fit()
-    #plt.figure()
+
+    # Definicion del modelo
+    if tipoFun == 'log':
+        mod = smf.quantreg('y ~ I(np.log(x))', data)
+    else:
+        mod = smf.quantreg('y ~ x', data)
+    # Entrenamos el modelo con cada uno de los cuantiles
+    res_all = [mod.fit(q=q) for q in cuantiles]
+
     # Dataframe con los datos a devolver
-    calculo = pd.DataFrame({'quantiles': [], 'fecha': []})
+    fechaSupera = pd.DataFrame({'cuantiles': [], 'fechas': []})
     valoresq = []
     valoresf = []
-    for qm, res in zip(quantiles, res_all):
+    # DataFrame con las fechas cuantil y valores
+    predicciones = pd.DataFrame({'fechas': fechas[:-1]})
+    for qm, res in zip(cuantiles, res_all):
+        # Transformo qm a string para que sea el valor de la columna
+        predicciones[str(qm)] = res.predict({'x': z})
         # cogemos las predicciones por cada modelo y predecimos
-        #plt.plot(fechas[:-1], res.predict({'x': z}), linestyle='--', lw=1,
-        #         color='k', label='q=%.2F' % qm, zorder=2)
         index = 0
         # Si los valores de prediccion superan el valor caudalMaximo * porcentaje se guardan
         for value in res.predict({'x': z}):
@@ -102,20 +103,11 @@ def regresionesPercetiles(serie, quantiles, meses, caudalM, porcentaje):
                 valoresf.append(fechas[index].date())
                 break
             index = index + 1
+    fechaSupera['cuantiles'] = valoresq
+    fechaSupera['fechas'] = valoresf
+    predicciones.set_index('fechas', inplace=True)  # Lo seteo como indice
 
-    calculo['quantiles'] = valoresq
-    calculo['fecha'] = valoresf
-    # representacion grafica del valor maximo
-    y_max = [[caudalM * porcentaje] * len(fechas[:-1])]
-    y_max = np.reshape(y_max, (len(fechas[:-1]), 1))
-    #plt.plot(fechas[:-1], y_max, linestyle='--', linewidth=2, color='red')
-    # representacion de la serie original
-    #plt.plot(serie.index, y, 'o', alpha=.1, zorder=0)
-    #plt.show()
-    if not calculo.empty:
-        print("Resultados para un intervalo de:", meses, "meses.")
-        print(calculo)
-    else:
-        print("No se obtiene ningun cuantil para un intervalo de:", meses, "meses.")
-    return calculo
+    # Esta funcion en la version final no estara
+    #representacionGrafica(serie, predicciones, caudalM, porcentaje)
+    return fechaSupera, predicciones
 
