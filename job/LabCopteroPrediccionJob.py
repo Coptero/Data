@@ -43,10 +43,15 @@ class LabCopteroPrediccionJob(SparkJob):
         # print("\nUpgrade Primer Intervalo")
         # regresionesPercetiles(upgradePrimerIntervalo, [.1, .2, .3, .5, .6, .7, .8, .9, .95, .96, .97, .98, .99], 3, 12.3, 0.9)
         print("\nUpgrade Segundo Intervalo")
-        fechaSupera, predicciones = regresionesPercetiles(upgradeSegundoIntervalo[:-2000],
-                                                          [.90, .95, .96, .97, .98, .99], 3, 16, .82, conf)
-        print(fechaSupera)
-        print(predicciones)
+        #fechaSupera, predicciones = regresionesPercetiles(upgradeSegundoIntervalo[:-2000],
+        #                                                  [.90, .95, .96, .97, .98, .99], 3, 16, .82, conf)
+
+        listquantiles = [[.90], [.95], [.96], [.97], [.98], [.99]]
+        for i in range(len(listquantiles)):
+            fechaSupera, predicciones = regresionesPercetiles(upgradeSegundoIntervalo[:-2000],
+                                                              listquantiles[i], 3, 16, .82, conf)
+            print(fechaSupera)
+            print(predicciones)
         sqlContext = SQLContext(SparkContext.getOrCreate())
         # newdf = sqlContext.createDataFrame(fechaSupera)
         # newdf.show(2)
@@ -103,17 +108,11 @@ def regresionesPercetiles(serie, cuantiles, meses, caudalM, porcentaje, conf, ti
         predicciones[str(qm)] = res.predict({'x': z})
         # cogemos las predicciones por cada modelo y predecimos
         index = 0
+        predictionIndex.reached_quantile_date = "Not reached"
         # Si los valores de prediccion superan el valor caudalMaximo * porcentaje se guardan
         for value in res.predict({'x': z}):
             if value >= caudalM * porcentaje:
-                if qm == 0.96:
-                    predictionIndex.cuantil96 = str(fechas[index].date())
-                elif qm == 0.97:
-                    predictionIndex.cuantil97 = str(fechas[index].date())
-                elif qm == 0.98:
-                    predictionIndex.cuantil98 = str(fechas[index].date())
-                elif qm == 0.99:
-                    predictionIndex.cuantil99 = str(fechas[index].date())
+                predictionIndex.reached_quantile_date = str(fechas[index].date())
                 valoresq.append(qm)
                 valoresf.append(fechas[index].date())
                 break
@@ -121,9 +120,8 @@ def regresionesPercetiles(serie, cuantiles, meses, caudalM, porcentaje, conf, ti
     fechaSupera['cuantiles'] = valoresq
     fechaSupera['fechas'] = valoresf
     predicciones.set_index('fechas', inplace=True)  # Lo seteo como indice
-    prediction_data = predictionindexSchema('ID00', predictionIndex.cuantil96, predictionIndex.cuantil97,
-                                            predictionIndex.cuantil98, predictionIndex.cuantil99, '2018-10-01 00:05:00',
-                                            '2020-01-23 01:15:00', '9.656669', '11.491900')
+    prediction_data = predictionindexSchema(cuantiles, predictionIndex.reached_quantile_date, str(predicciones.index[0]),
+                                            str(predicciones.index[-1]), float(predicciones.iloc[0,0]), float(predicciones.iloc[-1,0]))
     sc = SparkContext.getOrCreate()
     sqlContext = SQLContext(sc)
     predictionDataFrame = sqlContext.createDataFrame(prediction_data)
@@ -154,11 +152,11 @@ class PredictionIndex:
         return c
 
 
-def predictionindexSchema(prediction_id, cuantil96, cuantil97, cuantil98, cuantil99, start_date, end_date, start_value, end_value):
+def predictionindexSchema(cuantil, reach_date, start_date, end_date, start_value, end_value):
     log_row = namedtuple('log_row',
-                         'prediction_id cuantil96 cuantil97 cuantil98 cuantil99 start_date end_date start_value end_value'.split())
+                         'cuantil reach_date start_date end_date start_value end_value'.split())
     log_date = [
-        log_row(prediction_id, cuantil96, cuantil97, cuantil98, cuantil99, start_date, end_date, start_value, end_value)
+        log_row(cuantil, reach_date, start_date, end_date, start_value, end_value)
     ]
 
     return log_date
